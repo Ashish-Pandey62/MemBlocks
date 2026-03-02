@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     """
 
     groq_api_key: Optional[str] = Field(None, env="GROQ_API_KEY")
+    gemini_api_key: Optional[str] = Field(None, env="GEMINI_API_KEY")
     mongodb_connection_string: Optional[str] = Field(
         None, env="MONGODB_CONNECTION_STRING"
     )
@@ -37,8 +38,12 @@ class Settings(BaseSettings):
     qdrant_prefer_grpc: bool = Field(True, env="QDRANT_PREFER_GRPC")
 
     # LLM defaults
+    llm_provider: str = Field(
+        "groq",  # Options: "groq" or "gemini"
+        env="LLM_PROVIDER",
+    )
     llm_model: str = Field(
-        "meta-llama/llama-4-maverick-17b-128e-instruct",
+        "meta-llama/llama-4-maverick-17b-128e-instruct", # or "gemini-3-flash-preview"
         env="LLM_MODEL",
     )
     llm_convo_temperature: float = Field(0.7, env="LLM_CONVO_TEMPERATURE")
