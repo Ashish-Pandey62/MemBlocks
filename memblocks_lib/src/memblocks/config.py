@@ -95,6 +95,9 @@ class MemBlocksConfig(BaseSettings):
     embeddings_model: str = Field(
         "nomic-embed-text", validation_alias="EMBEDDINGS_MODEL"
     )
+    sparse_embeddings_model: str = Field(
+        "prithivida/Splade_PP_en_v1", validation_alias="SPARSE_EMBEDDINGS_MODEL"
+    )
 
     # -------------------------------------------------------------------------
     # Memory pipeline behaviour

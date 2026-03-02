@@ -101,12 +101,12 @@ class BlockManager:
         if create_semantic:
             semantic_collection = f"{block_id}_semantic"
             self._qdrant.create_collection(semantic_collection)
-            print(f"   ✓ Created semantic collection: {semantic_collection}")
+            print(f"   [OK] Created semantic collection: {semantic_collection}")
 
         if create_resource:
             resource_collection = f"{block_id}_resource"
             self._qdrant.create_collection(resource_collection)
-            print(f"   ✓ Created resource collection: {resource_collection}")
+            print(f"   [OK] Created resource collection: {resource_collection}")
 
         if create_core:
             core_memory_block_id = block_id
@@ -115,7 +115,7 @@ class BlockManager:
                 persona_content="",
                 human_content="",
             )
-            print(f"   ✓ Created core memory document: {block_id}")
+            print(f"   [OK] Created core memory document: {block_id}")
 
         # Persist block document
         metadata = MemoryBlockMetaData(
@@ -141,7 +141,7 @@ class BlockManager:
         await self._mongo.create_memory_block(user_id, block_dict)
         await self._mongo.add_block_to_user(user_id, block_id)
 
-        print(f"✅ Created memory block: {block_id}")
+        print(f"[OK] Created memory block: {block_id}")
         return self._make_block(
             block_id=block_id,
             name=name,

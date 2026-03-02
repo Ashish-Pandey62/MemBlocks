@@ -43,11 +43,11 @@ class UserManager:
         """
         existing = await self._mongo.get_user(user_id)
         if existing:
-            print(f"⚠️ User {user_id} already exists")
+            print(f"[WARN] User {user_id} already exists")
             return existing
 
         user_doc = await self._mongo.create_user(user_id, metadata)
-        print(f"✅ Created user: {user_id}")
+        print(f"[OK] Created user: {user_id}")
         return user_doc
 
     async def get_user(self, user_id: str) -> Optional[Dict[str, Any]]:
@@ -92,5 +92,5 @@ class UserManager:
         user = await self._mongo.get_user(user_id)
         if not user:
             user = await self._mongo.create_user(user_id, metadata)
-            print(f"✅ Created new user: {user_id}")
+            print(f"[OK] Created new user: {user_id}")
         return user

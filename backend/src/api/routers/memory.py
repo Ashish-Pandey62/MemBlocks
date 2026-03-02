@@ -23,12 +23,15 @@ async def get_core_memory(
     client: MemBlocksClient = Depends(get_client),
 ) -> Dict[str, Any]:
     """Retrieve the core memory (persona + human facts) for a block."""
-    core = await client.core.get(block_id)
-    if not core:
+    block = await client.get_block(block_id)
+    if not block:
+        raise HTTPException(status_code=404, detail=f"Block '{block_id}' not found")
+    core = await block.core_retrieve()
+    if not core or not core.core:
         raise HTTPException(
             status_code=404, detail=f"Core memory for block '{block_id}' not found"
         )
-    return core.model_dump()
+    return core.core.model_dump()
 
 
 @router.patch("/core/{block_id}", response_model=Dict[str, Any])
@@ -42,8 +45,12 @@ async def update_core_memory(
     Only the provided fields (persona_content, human_content) are updated;
     omitted fields are left unchanged.
     """
-    core = await client.core.get(block_id)
-    if not core:
+    block = await client.get_block(block_id)
+    if not block:
+        raise HTTPException(status_code=404, detail=f"Block '{block_id}' not found")
+
+    core = await block.core_retrieve()
+    if not core or not core.core:
         raise HTTPException(
             status_code=404, detail=f"Core memory for block '{block_id}' not found"
         )
@@ -51,15 +58,21 @@ async def update_core_memory(
     persona = (
         body.persona_content
         if body.persona_content is not None
-        else core.persona_content
+        else core.core.persona_content
     )
-    human = body.human_content if body.human_content is not None else core.human_content
+    human = (
+        body.human_content
+        if body.human_content is not None
+        else core.core.human_content
+    )
 
-    updated = await client.core.update(
-        block_id=block_id,
-        persona_content=persona,
-        human_content=human,
-    )
+    # Use the internal core service to update
+    from memblocks.models.units import CoreMemoryUnit
+
+    updated = CoreMemoryUnit(persona_content=persona, human_content=human)
+    # Store back via the block's core service
+    await block._core.save(block_id, updated)
+
     return updated.model_dump()
 
 
@@ -76,16 +89,11 @@ async def search_semantic_memories(
 
     Returns a flat list of SemanticMemoryUnit dicts ordered by relevance.
     """
-    block = await client.blocks.get_block(block_id)
+    block = await client.get_block(block_id)
     if not block:
         raise HTTPException(status_code=404, detail=f"Block '{block_id}' not found")
 
-    engine = client.get_chat_engine(block)
-    results_grouped = engine.chat._semantic.retrieve(
-        query_texts=[body.query],
-        top_k=body.top_k,
-    )
-    flat: List[Dict[str, Any]] = [
-        mem.model_dump() for group in results_grouped for mem in group
-    ]
+    # Use the block's semantic retrieval directly
+    context = await block.retrieve(body.query)
+    flat: List[Dict[str, Any]] = [mem.model_dump() for mem in context.semantic]
     return flat

@@ -2,7 +2,9 @@
 
 import requests
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, TYPE_CHECKING
+from typing import List, TYPE_CHECKING, Dict, Any
+
+from fastembed.sparse.sparse_text_embedding import SparseTextEmbedding
 
 if TYPE_CHECKING:
     from memblocks.config import MemBlocksConfig
@@ -28,8 +30,12 @@ class EmbeddingProvider:
                     ``config.embeddings_model`` and ``config.ollama_base_url``.
         """
         self._model: str = config.embeddings_model
+        self._sparse_model: str = config.sparse_embeddings_model
         self._base_url: str = config.ollama_base_url
         self._endpoint: str = f"{config.ollama_base_url}/api/embeddings"
+
+        # Initialize fastembed sparse model
+        self._sparse_embedder = SparseTextEmbedding(model_name=self._sparse_model)
 
     # ------------------------------------------------------------------
     # Public interface
@@ -95,3 +101,48 @@ class EmbeddingProvider:
         """
         sample = self.embed_text("test")
         return len(sample)
+
+    def embed_sparse_text(self, text: str) -> Dict[str, Any]:
+        """
+        Embed a single text string into a sparse vector using fastembed.
+
+        Args:
+            text: Text to embed.
+
+        Returns:
+            Dictionary containing 'indices' and 'values' for the sparse vector.
+        """
+        # fastembed returns a generator of SparseEmbedding objects
+        embeddings = list(self._sparse_embedder.embed([text]))
+        if not embeddings:
+            return {"indices": [], "values": []}
+        
+        # Access the first item (since we passed a single text)
+        sparse_obj = embeddings[0]
+        # fastembed returns indices as ints and values as floats
+        return {
+            "indices": sparse_obj.indices.tolist(),
+            "values": sparse_obj.values.tolist(),
+        }
+
+    def embed_sparse_documents(self, texts: List[str]) -> List[Dict[str, Any]]:
+        """
+        Embed multiple texts into sparse vectors in parallel.
+
+        Args:
+            texts: List of texts to embed.
+
+        Returns:
+            List of dictionaries containing 'indices' and 'values'.
+        """
+        # fastembed handles batch natively
+        embeddings = list(self._sparse_embedder.embed(texts))
+        
+        result = []
+        for sparse_obj in embeddings:
+            result.append({
+                "indices": sparse_obj.indices.tolist(),
+                "values": sparse_obj.values.tolist(),
+            })
+            
+        return result

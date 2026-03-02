@@ -85,7 +85,7 @@ class SessionManager:
             "recursive_summary": "",
         }
         await self._mongo.create_session(session_data)
-        print(f"✅ Created session: {session_id} (block: {block_id})")
+        print(f"[OK] Created session: {session_id} (block: {block_id})")
         return self._make_session(
             session_id=session_id,
             user_id=user_id,

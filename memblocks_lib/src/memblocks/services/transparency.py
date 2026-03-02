@@ -345,7 +345,7 @@ class EventBus:
             try:
                 cb(payload)
             except Exception as exc:
-                print(f"⚠️ EventBus callback error for '{event_name}': {exc}")
+                print(f"[WARN] EventBus callback error for '{event_name}': {exc}")
 
 
 __all__ = [

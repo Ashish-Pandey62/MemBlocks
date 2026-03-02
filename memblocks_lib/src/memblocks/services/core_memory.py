@@ -102,7 +102,7 @@ class CoreMemoryService:
             )
 
         except Exception as e:
-            print(f"⚠️ Failed to extract core memory: {e}")
+            print(f"[WARN] Failed to extract core memory: {e}")
             # Return old core memory or empty if extraction fails
             if old_core_memory:
                 return old_core_memory
@@ -133,7 +133,7 @@ class CoreMemoryService:
             )
             return True
         except Exception as e:
-            print(f"⚠️ Failed to store core memory: {e}")
+            print(f"[WARN] Failed to store core memory: {e}")
             return False
 
     # ------------------------------------------------------------------ #
@@ -163,7 +163,7 @@ class CoreMemoryService:
                 )
             return None
         except Exception as e:
-            print(f"⚠️ Failed to retrieve core memory: {e}")
+            print(f"[WARN] Failed to retrieve core memory: {e}")
             return None
 
     # ------------------------------------------------------------------ #

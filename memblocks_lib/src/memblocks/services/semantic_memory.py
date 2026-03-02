@@ -1,9 +1,11 @@
 """SemanticMemoryService — extracted from models/sections.py SemanticMemorySection."""
 
 import json
+import re
+import string
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from memblocks.models.llm_outputs import SemanticMemoriesOutput, PS2MemoryUpdateOutput
 from memblocks.models.units import (
@@ -135,7 +137,7 @@ class SemanticMemoryService:
             return extracted
 
         except Exception as e:
-            print(f"⚠️ Failed to extract semantic memories: {e}")
+            print(f"[WARN] Failed to extract semantic memories: {e}")
             return []
 
     # ------------------------------------------------------------------ #
@@ -168,6 +170,7 @@ class SemanticMemoryService:
 
         text_to_embed = memory_unit.embedding_text or memory_unit.content
         new_vector = self._embeddings.embed_text(text_to_embed)
+        new_sparse_vector = self._embeddings.embed_sparse_text(text_to_embed)
 
         similar_results = self._qdrant.retrieve_from_vector(
             self._collection, new_vector, top_k=5
@@ -176,7 +179,7 @@ class SemanticMemoryService:
         new_memory_dict = memory_unit.model_dump()
         new_memory_dict["updated_at"] = current_time
 
-        # Build mapping: simple_index → real Qdrant UUID
+        # Build mapping: simple_index -> real Qdrant UUID
         existing_memories_list: List[Dict[str, Any]] = []
         id_mapping: Dict[str, str] = {}
         existing_contents: Dict[str, str] = {}
@@ -189,12 +192,16 @@ class SemanticMemoryService:
                 existing_memories_list.append(existing_mem)
                 existing_contents[simple_id] = point.payload.get("content", "")
 
-        # ---- No similar memories → just ADD ----
+        # ---- No similar memories -> just ADD ----
         if not existing_memories_list:
             payload = memory_unit.model_dump()
-            success = self._qdrant.store_vector(self._collection, new_vector, payload)
+            success = self._qdrant.store_vector(
+                self._collection, new_vector, payload, sparse_vector=new_sparse_vector
+            )
             if success:
-                print(f"✓ Added new memory (no similar): {memory_unit.content[:60]}...")
+                print(
+                    f"[OK] Added new memory (no similar): {memory_unit.content[:60]}..."
+                )
                 operations.append(
                     MemoryOperation(operation="ADD", content=memory_unit.content)
                 )
@@ -214,10 +221,12 @@ class SemanticMemoryService:
             result = await chain.ainvoke({"input": user_input})
 
         except Exception as e:
-            print(f"⚠️ PS2 conflict resolution failed: {e}")
+            print(f"[WARN] PS2 conflict resolution failed: {e}")
             print("   Fallback: Adding memory without conflict check")
             payload = memory_unit.model_dump()
-            success = self._qdrant.store_vector(self._collection, new_vector, payload)
+            success = self._qdrant.store_vector(
+                self._collection, new_vector, payload, sparse_vector=new_sparse_vector
+            )
             if success:
                 operations.append(
                     MemoryOperation(operation="ADD", content=memory_unit.content)
@@ -229,10 +238,12 @@ class SemanticMemoryService:
         # Handle new memory decision
         if result.new_memory_operation.operation == "ADD":
             payload = memory_unit.model_dump()
-            success = self._qdrant.store_vector(self._collection, new_vector, payload)
+            success = self._qdrant.store_vector(
+                self._collection, new_vector, payload, sparse_vector=new_sparse_vector
+            )
             if success:
                 operations_performed.append("ADD new memory")
-                print(f"✓ Added new memory: {memory_unit.content[:60]}...")
+                print(f"[OK] Added new memory: {memory_unit.content[:60]}...")
                 operations.append(
                     MemoryOperation(operation="ADD", content=memory_unit.content)
                 )
@@ -259,6 +270,7 @@ class SemanticMemoryService:
                 updated_unit = SemanticMemoryUnit(**op.updated_memory)
                 updated_text = updated_unit.embedding_text or updated_unit.content
                 updated_vector = self._embeddings.embed_text(updated_text)
+                updated_sparse_vector = self._embeddings.embed_sparse_text(updated_text)
 
                 payload_without_id = {
                     k: v for k, v in op.updated_memory.items() if k != "id"
@@ -270,6 +282,7 @@ class SemanticMemoryService:
                     updated_vector,
                     payload_without_id,
                     point_id=real_id,
+                    sparse_vector=updated_sparse_vector,
                 )
                 if success:
                     operations_performed.append(f"UPDATE {real_id[:8]}...")
@@ -338,8 +351,107 @@ class SemanticMemoryService:
         return memories
 
     # ------------------------------------------------------------------ #
-    # Retrieval
+    # Hybrid Retrieval — vector + keyword/entity + fusion reranking
     # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _extract_query_terms(query: str) -> Tuple[List[str], List[str]]:
+        """
+        Lightweight extraction of keywords and entity candidates from a raw
+        query string using only Python stdlib (re, string).
+
+        Strategy:
+        - ``keywords``: lowercased, punctuation-stripped tokens, stopwords removed.
+        - ``entities``:  sequences of consecutive Title-Case words (potential
+          named entities: people, places, products etc.).
+
+        No external NLP libraries required.
+
+        Args:
+            query: Raw query text from the user.
+
+        Returns:
+            (keywords, entities) — both are lists of strings.
+        """
+        _STOPWORDS = {
+            "a",
+            "an",
+            "and",
+            "are",
+            "as",
+            "at",
+            "be",
+            "been",
+            "but",
+            "by",
+            "did",
+            "do",
+            "does",
+            "for",
+            "from",
+            "had",
+            "has",
+            "have",
+            "he",
+            "her",
+            "him",
+            "his",
+            "how",
+            "i",
+            "if",
+            "in",
+            "is",
+            "it",
+            "its",
+            "just",
+            "me",
+            "my",
+            "no",
+            "not",
+            "of",
+            "on",
+            "or",
+            "our",
+            "she",
+            "so",
+            "that",
+            "the",
+            "their",
+            "them",
+            "then",
+            "there",
+            "they",
+            "this",
+            "to",
+            "too",
+            "up",
+            "us",
+            "was",
+            "we",
+            "what",
+            "when",
+            "where",
+            "which",
+            "who",
+            "will",
+            "with",
+            "you",
+            "your",
+        }
+
+        # Strip punctuation and lowercase for keyword extraction
+        clean = query.translate(str.maketrans("", "", string.punctuation))
+        tokens = clean.lower().split()
+        keywords = [t for t in tokens if t and t not in _STOPWORDS and len(t) > 2]
+
+        # Entity candidates: consecutive Title-Case word runs (≥1 word)
+        # e.g. "San Francisco" or "OpenAI" — grab individual Title-Case words too
+        entity_pattern = re.compile(r"\b[A-Z][a-zA-Z]*(?:\s+[A-Z][a-zA-Z]*)*\b")
+        entities = entity_pattern.findall(query)
+        # Lower-case them so they match lowercased payload values
+        entities = [e.lower() for e in entities if len(e) > 2]
+
+        return keywords, entities
 
     def retrieve(
         self,
@@ -347,27 +459,124 @@ class SemanticMemoryService:
         top_k: int = 5,
     ) -> List[List[SemanticMemoryUnit]]:
         """
-        Retrieve top-k semantically similar memories for each query text.
+        Hybrid retrieval: vector similarity + keyword/entity scroll, fused and
+        reranked into a single ordered result list per query.
 
-        Mirrors SemanticMemorySection.retrieve_memories() (sections.py:344-378).
+        Pipeline per query
+        ------------------
+        1. Extract keywords + entity candidates from the raw query string.
+        2. Run in parallel:
+           a. Vector similarity search  (cosine distance via Qdrant)
+           b. Keyword/entity scroll      (payload MatchAny filter)
+        3. Fuse scores:
+           - Vector result  -> ``fusion_score = vector_score``
+           - Keyword hit    -> ``+0.15`` if already in vector results,
+                              ``0.30`` if only from scroll
+        4. De-duplicate, sort by ``fusion_score`` desc, return top_k.
+
+        CLI logging is emitted to stdout so the keyword/entity path is
+        always visible when running the server or a REPL.
 
         Args:
             query_texts: List of query strings.
             top_k: Number of results per query.
 
         Returns:
-            List of lists — one list of SemanticMemoryUnit per query, de-duplicated.
+            List of lists — one list of SemanticMemoryUnit per query.
         """
+        import time
+
         query_vectors = self._embeddings.embed_documents(query_texts)
+        query_sparse_vectors = self._embeddings.embed_sparse_documents(query_texts)
 
-        def _search(vector: List[float]) -> List[SemanticMemoryUnit]:
-            results = self._qdrant.retrieve_from_vector(self._collection, vector, top_k)
-            return [SemanticMemoryUnit(**hit.payload) for hit in results]
+        def _hybrid_search(
+            args: Tuple[str, List[float], Dict[str, Any]],
+        ) -> List[SemanticMemoryUnit]:
+            query_text, vector, sparse_vector = args
 
+            # ── Step 1: extract search terms (for manual evaluation only) ─
+            keywords, entities = self._extract_query_terms(query_text)
+
+            print("\n[HybridRetrieve]")
+            print(f"   Query    : {query_text!r}")
+            print(f"   Keywords : {keywords}")
+            print(f"   Entities : {entities}")
+
+            # ── Step 2a: Qdrant Native Hybrid Search ──────────────────────
+            start_bm25 = time.time()
+            vector_points = self._qdrant.retrieve_hybrid(
+                self._collection,
+                dense_query_vector=vector,
+                sparse_query_vector=sparse_vector,
+                top_k=top_k * 2,
+            )
+            bm25_time = time.time() - start_bm25
+            print(
+                f"   Native Hybrid Search -> {len(vector_points)} result(s) in {bm25_time:.4f}s"
+            )
+
+            # ── Step 2b: (Idle) Manual keyword / entity scroll for metrics ──
+            start_manual = time.time()
+            kw_records = self._qdrant.retrieve_by_keywords_and_entities(
+                self._collection,
+                keywords=keywords,
+                entities=entities,
+                top_k=top_k * 2,
+            )
+            manual_time = time.time() - start_manual
+            print(
+                f"   Idle Manual Scroll    -> {len(kw_records)} result(s) in {manual_time:.4f}s"
+            )
+
+            # ── Step 3: parse candidates ──────────────────────────────────
+            candidates: Dict[str, Tuple[SemanticMemoryUnit, float]] = {}
+
+            # --- Qdrant native hybrid results (BM25 + semantic) ---
+            for point in vector_points:
+                payload = point.payload
+                content = payload.get("content", "")
+                if not content:
+                    continue
+                try:
+                    unit = SemanticMemoryUnit(**payload)
+                except Exception:
+                    continue
+                score = float(getattr(point, "score", 0.5))
+                candidates[content] = (unit, score)
+
+            # --- Manual keyword/entity search (IDLE - for benchmarking only) ---
+            # This runs but is NOT combined into results
+            # Uncomment below to enable manual scroll in results:
+            # for point in kw_records:
+            #     payload = point.payload
+            #     content = payload.get("content", "")
+            #     if not content:
+            #         continue
+            #     try:
+            #         unit = SemanticMemoryUnit(**payload)
+            #     except Exception:
+            #         continue
+            #     bonus_score = 0.1
+            #     if content in candidates:
+            #         existing_unit, existing_score = candidates[content]
+            #         candidates[content] = (existing_unit, existing_score + bonus_score)
+            #     else:
+            #         candidates[content] = (unit, bonus_score)
+
+            # ── Step 4: sort, return top_k ────────────────────────────────
+            ranked = sorted(candidates.values(), key=lambda x: x[1], reverse=True)
+            return [unit for unit, _ in ranked[:top_k]]
+
+        # Run hybrid search for each query in parallel
         with ThreadPoolExecutor(max_workers=min(10, len(query_vectors))) as executor:
-            grouped_results = list(executor.map(_search, query_vectors))
+            grouped_results: List[List[SemanticMemoryUnit]] = list(
+                executor.map(
+                    _hybrid_search,
+                    zip(query_texts, query_vectors, query_sparse_vectors),
+                )
+            )
 
-        # De-duplicate across query groups
+        # Global de-duplication across all query groups
         seen_contents: set = set()
         deduplicated: List[List[SemanticMemoryUnit]] = []
 
@@ -379,7 +588,7 @@ class SemanticMemoryService:
                     unique_group.append(memory)
             deduplicated.append(unique_group)
 
-        # Transparency: log retrieval
+        # ── Transparency logging ───────────────────────────────────────────
         if self._retrieval_log is not None:
             from memblocks.models.transparency import RetrievalEntry
 
@@ -387,7 +596,7 @@ class SemanticMemoryService:
             self._retrieval_log.record(
                 RetrievalEntry(
                     query_text=query_texts[0] if query_texts else "",
-                    source="semantic",
+                    source="semantic_hybrid",
                     num_results=len(flat_memories),
                     memory_summaries=[m.content[:80] for m in flat_memories[:5]],
                 )
@@ -396,7 +605,7 @@ class SemanticMemoryService:
             self._bus.publish(
                 "on_memory_retrieved",
                 {
-                    "source": "semantic",
+                    "source": "semantic_hybrid",
                     "collection": self._collection,
                     "num_results": sum(len(g) for g in deduplicated),
                 },

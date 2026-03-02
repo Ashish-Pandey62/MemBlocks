@@ -106,31 +106,33 @@ class MemoryPipeline:
                 {"run_id": run_id, "message_count": len(messages)},
             )
 
-        print(f"\n🔄 MEMORY PIPELINE START ({run_id})")
+        print(f"\n[RUN] MEMORY PIPELINE START ({run_id})")
         print(f"   Processing {len(messages)} messages for block {block_id}...")
 
         all_operations: List[MemoryOperation] = []
 
         try:
             # ---- STEP 1: Semantic Memory ----
-            print("   → STEP 1: Semantic Extraction...")
+            print("   -- STEP 1: Semantic Extraction...")
             semantic_memories = await self._semantic.extract(messages)
-            print(f"   ✓ Extracted {len(semantic_memories)} semantic memories")
+            print(f"   [OK] Extracted {len(semantic_memories)} semantic memories")
 
             for mem in semantic_memories:
                 ops = await self._semantic.store(mem)
                 all_operations.extend(ops)
-            print(f"   ✓ Stored semantic memories ({len(all_operations)} operations)")
+            print(
+                f"   [OK] Stored semantic memories ({len(all_operations)} operations)"
+            )
 
             # ---- STEP 2: Core Memory ----
-            print("   → STEP 2: Core Memory Update...")
+            print("   -- STEP 2: Core Memory Update...")
             await self._core.update(block_id=block_id, messages=messages)
-            print("   ✓ Core memory updated")
+            print("   [OK] Core memory updated")
 
             # ---- STEP 3: Recursive Summary ----
-            print("   → STEP 3: Recursive Summary Generation...")
+            print("   -- STEP 3: Recursive Summary Generation...")
             new_summary = await self._generate_summary(messages, current_summary)
-            print("   ✓ Summary generated")
+            print("   [OK] Summary generated")
 
             # Transparency
             ProcessingEvent(
@@ -149,7 +151,7 @@ class MemoryPipeline:
             if self._bus:
                 self._bus.publish("on_pipeline_completed", {"run_id": run_id})
 
-            print(f"✅ MEMORY PIPELINE COMPLETE ({run_id})")
+            print(f"[OK] MEMORY PIPELINE COMPLETE ({run_id})")
             return new_summary
 
         except Exception as exc:
@@ -160,7 +162,7 @@ class MemoryPipeline:
                     "on_pipeline_failed",
                     {"run_id": run_id, "error": str(exc)},
                 )
-            print(f"❌ Memory pipeline failed ({run_id}): {exc}")
+            print(f"[ERR] Memory pipeline failed ({run_id}): {exc}")
             raise
 
     # ------------------------------------------------------------------ #
@@ -203,5 +205,5 @@ class MemoryPipeline:
             return result.summary
 
         except Exception as e:
-            print(f"⚠️ Failed to generate summary: {e}")
+            print(f"[WARN] Failed to generate summary: {e}")
             return previous_summary

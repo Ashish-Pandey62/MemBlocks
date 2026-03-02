@@ -152,7 +152,7 @@ class Session:
             await self._mongo.set_session_summary(self.id, new_summary)
             await self._mongo.trim_session_messages(self.id, self._keep_last_n)
             print(
-                f"   ✓ Session {self.id}: flushed ({msg_count} → {self._keep_last_n} messages)"
+                f"   [OK] Session {self.id}: flushed ({msg_count} -> {self._keep_last_n} messages)"
             )
 
     # ------------------------------------------------------------------ #

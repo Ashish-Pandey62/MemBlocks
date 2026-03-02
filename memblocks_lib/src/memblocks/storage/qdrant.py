@@ -6,10 +6,15 @@ from typing import Optional, Dict, Any, List, TYPE_CHECKING
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance,
+    FieldCondition,
     Filter,
+    MatchAny,
     PointIdsList,
     PointStruct,
     VectorParams,
+    SparseVectorParams,
+    SparseVector,
+    Prefetch,
 )
 
 if TYPE_CHECKING:
@@ -22,7 +27,7 @@ class QdrantAdapter:
     """
     Instance-based Qdrant vector database adapter.
 
-    Replaces: ``vector_db/vector_db_manager.py`` → ``VectorDBManager``
+    Replaces: ``vector_db/vector_db_manager.py`` -> ``VectorDBManager``
     (all-static class with import-time side-effects).
 
     Changes from VectorDBManager:
@@ -40,7 +45,7 @@ class QdrantAdapter:
        VectorDBManager ignored ``config.qdrant_host`` / ``config.qdrant_port``
        entirely and hardcoded "localhost:6333".  This adapter reads from config.
 
-    3. **Static → instance methods.**
+    3. **Static -> instance methods.**
        All six static methods become regular instance methods using
        ``self._client`` instead of ``VectorDBManager.get_client()``.
 
@@ -165,6 +170,9 @@ class QdrantAdapter:
                     size=resolved_size,
                     distance=Distance.COSINE,
                 ),
+                sparse_vectors_config={
+                    "text-sparse": SparseVectorParams(),
+                },
             )
             return True
         except Exception as e:
@@ -182,6 +190,7 @@ class QdrantAdapter:
         vector: List[float],
         payload: Dict[str, Any],
         point_id: Optional[str] = None,
+        sparse_vector: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """
         Upsert a single vector into a collection.
@@ -191,21 +200,32 @@ class QdrantAdapter:
             vector: Embedding vector.
             payload: Metadata stored alongside the vector.
             point_id: Optional explicit UUID string ID.  Auto-generated if None.
+            sparse_vector: Optional dict with 'indices' and 'values' for BM25.
 
         Returns:
             True if successful, False otherwise.
         """
         try:
             resolved_id = point_id or str(uuid4())
+
+            point_kwargs = {
+                "id": resolved_id,
+                "vector": vector,
+                "payload": payload,
+            }
+
+            if sparse_vector:
+                point_kwargs["vector"] = {
+                    "": vector,  # default named dense vector
+                    "text-sparse": SparseVector(
+                        indices=sparse_vector.get("indices", []),
+                        values=sparse_vector.get("values", []),
+                    ),
+                }
+
             self._client.upsert(
                 collection_name=collection_name,
-                points=[
-                    PointStruct(
-                        id=resolved_id,
-                        vector=vector,
-                        payload=payload,
-                    )
-                ],
+                points=[PointStruct(**point_kwargs)],
                 wait=False,
             )
             self._record_op(
@@ -257,6 +277,111 @@ class QdrantAdapter:
             return results.points
         except Exception as e:
             print(f"Error retrieving vectors: {e}")
+            return []
+
+    def retrieve_hybrid(
+        self,
+        collection_name: str,
+        dense_query_vector: List[float],
+        sparse_query_vector: Dict[str, Any],
+        top_k: int = 5,
+    ) -> list:
+        """
+        Hybrid retrieval: Combine dense semantic search and sparse BM25 search natively in Qdrant.
+
+        Args:
+            collection_name: Source Qdrant collection.
+            dense_query_vector: The dense embedding from nomic-embed-text.
+            sparse_query_vector: The sparse representation from fastembed.
+            top_k: Number of results to return.
+
+        Returns:
+            List of ``ScoredPoint`` objects.
+        """
+        try:
+            sparse_vector = SparseVector(
+                indices=sparse_query_vector.get("indices", []),
+                values=sparse_query_vector.get("values", []),
+            )
+
+            results = self._client.query_points(
+                collection_name=collection_name,
+                prefetch=[
+                    Prefetch(
+                        query=dense_query_vector,
+                        using="",
+                        limit=top_k * 2,
+                    ),
+                    Prefetch(
+                        query=sparse_vector,
+                        using="text-sparse",
+                        limit=top_k * 2,
+                    ),
+                ],
+                query=dense_query_vector,  # fallback scorer
+                limit=top_k,
+            )
+            return results.points
+        except Exception as e:
+            print(f"Error retrieving hybrid vectors: {e}")
+            return []
+
+    def retrieve_by_keywords_and_entities(
+        self,
+        collection_name: str,
+        keywords: List[str],
+        entities: List[str],
+        top_k: int = 10,
+    ) -> list:
+        """
+        Scroll collection for points whose payload ``keywords`` or ``entities``
+        arrays contain any of the supplied terms (OR / ``should`` logic).
+
+        Used by SemanticMemoryService for the keyword/entity arm of hybrid
+        retrieval. No vector computation required.
+
+        Args:
+            collection_name: Source Qdrant collection.
+            keywords: List of keyword strings extracted from the query.
+            entities: List of entity strings extracted from the query.
+            top_k: Maximum number of matching points to return.
+
+        Returns:
+            List of ``Record`` objects (qdrant_client types).
+        """
+        terms = [t.lower() for t in keywords + entities if t.strip()]
+        if not terms:
+            return []
+
+        try:
+            # Build OR-conditions: any keyword OR any entity must match
+            should_conditions = []
+            if keywords:
+                should_conditions.append(
+                    FieldCondition(
+                        key="keywords",
+                        match=MatchAny(any=[k.lower() for k in keywords if k.strip()]),
+                    )
+                )
+            if entities:
+                should_conditions.append(
+                    FieldCondition(
+                        key="entities",
+                        match=MatchAny(any=[e.lower() for e in entities if e.strip()]),
+                    )
+                )
+
+            payload_filter = Filter(should=should_conditions)
+            points, _ = self._client.scroll(
+                collection_name=collection_name,
+                scroll_filter=payload_filter,
+                limit=top_k,
+                with_vectors=False,
+                with_payload=True,
+            )
+            return points
+        except Exception as e:
+            print(f"Error retrieving by keywords/entities: {e}")
             return []
 
     def retrieve_from_payload(
@@ -326,7 +451,7 @@ class QdrantAdapter:
                 document_id=point_id,
                 payload_summary=f"delete vector {point_id} from {collection_name}",
             )
-            print(f"✓ Deleted vector {point_id} from {collection_name}")
+            print(f"[OK] Deleted vector {point_id} from {collection_name}")
             return True
         except Exception as e:
             self._record_op(
@@ -337,7 +462,7 @@ class QdrantAdapter:
                 error=str(e),
                 payload_summary=f"delete vector {point_id} from {collection_name}",
             )
-            print(f"⚠️ Error deleting vector {point_id}: {e}")
+            print(f"[WARN] Error deleting vector {point_id}: {e}")
             return False
 
     # ------------------------------------------------------------------

@@ -121,7 +121,7 @@ class VectorDBManager:
             list: List of retrieved points with their metadata.
         """
         client = VectorDBManager.get_client()
-        try:
+        try: 
             if hasattr(client, "scroll"):
                 points, _ = client.scroll(
                     collection_name=collection_name,
