@@ -15,6 +15,7 @@ from qdrant_client.models import (
     SparseVectorParams,
     SparseVector,
     Prefetch,
+    FusionQuery
 )
 
 if TYPE_CHECKING:
@@ -318,7 +319,7 @@ class QdrantAdapter:
                         limit=top_k * 2,
                     ),
                 ],
-                query=dense_query_vector,  # fallback scorer
+                query=FusionQuery(fusion="rrf"), 
                 limit=top_k,
             )
             return results.points
