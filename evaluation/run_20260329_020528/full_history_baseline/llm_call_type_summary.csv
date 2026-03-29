@@ -1,0 +1,7 @@
+call_type,request_count,total_input_tokens,total_output_tokens,total_tokens,latency_min_ms,latency_max_ms,latency_avg_ms,latency_p95_ms,providers,models
+ps1_extraction,0,0,0,0,,,,,,
+ps2_conflict,0,0,0,0,,,,,,
+retrieval,0,0,0,0,,,,,,
+core_memory,0,0,0,0,,,,,,
+summary,0,0,0,0,,,,,,
+conversation,100,333909,8049,341958,2530.9999999881256,12281.00000001723,6432.530000000261,9050.899999991816,ollama,hf.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF:Q4_K_M

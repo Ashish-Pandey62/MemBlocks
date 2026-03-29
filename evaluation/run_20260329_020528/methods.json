@@ -1,0 +1,15 @@
+[
+  {
+    "name": "memblocks_full",
+    "description": "Default MemBlocks retrieval pipeline with sparse hybrid search, query expansion, and reranking.",
+    "config_overrides": {
+      "retrieval_enable_sparse": true,
+      "retrieval_enable_query_expansion": true,
+      "retrieval_enable_hypothetical_paragraphs": false,
+      "retrieval_enable_reranking": true,
+      "retrieval_top_k_per_query": 5,
+      "retrieval_final_top_k": 10
+    },
+    "llm_task_overrides": {}
+  }
+]

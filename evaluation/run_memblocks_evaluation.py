@@ -357,46 +357,33 @@ def build_reference_llm_settings() -> LLMSettings:
     """Match the reference style used in backend/src/cli/main.py."""
     return LLMSettings(
         default=LLMTaskSettings(
-            provider="groq",
-            model="moonshotai/kimi-k2-instruct-0905",
+            provider="ollama",
+            model="hf.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF:Q4_K_M",
             temperature=0.0,
-            enable_thinking=False,
-        ),
-        retrieval=LLMTaskSettings(
-            provider="groq",
-            model="openai/gpt-oss-20b",
-            temperature=0.4,
-            enable_thinking=False,
-        ),
-        ps1_semantic_extraction=LLMTaskSettings(
-            provider="groq",
-            model="openai/gpt-oss-120b",
-            temperature=0.0,
-            enable_thinking=False,
-        ),
-        ps2_conflict_resolution=LLMTaskSettings(
-            provider="groq",
-            model="moonshotai/kimi-k2-instruct-0905",
-            temperature=0.0,
-            enable_thinking=False,
-        ),
-        core_memory_extraction=LLMTaskSettings(
-            provider="groq",
-            model="openai/gpt-oss-120b",
-            temperature=0.0,
-            enable_thinking=False,
-        ),
-        recursive_summary=LLMTaskSettings(
-            provider="groq",
-            model="openai/gpt-oss-120b",
-            temperature=0.3,
-            enable_thinking=False,
         ),
         conversation=LLMTaskSettings(
-            provider="groq",
-            model="moonshotai/kimi-k2-instruct-0905",
+            provider="ollama",
+            model="hf.co/nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF:Q4_K_M",
             temperature=0.7,
-            enable_thinking=False,
+        ),
+        retrieval=LLMTaskSettings(
+            provider="ollama",
+            model="hf.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF:Q4_K_M",
+            temperature=0.4,
+        ),
+        ps1_semantic_extraction=LLMTaskSettings(
+            provider="groq", model="openai/gpt-oss-120b", temperature=0.0
+        ),
+        ps2_conflict_resolution=LLMTaskSettings(
+            provider="ollama",
+            model="hf.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF:Q4_K_M",
+            temperature=0.0,
+        ),
+        core_memory_extraction=LLMTaskSettings(
+            provider="groq", model="openai/gpt-oss-120b", temperature=0.0
+        ),
+        recursive_summary=LLMTaskSettings(
+            provider="groq", model="openai/gpt-oss-120b", temperature=0.3
         ),
     )
 
