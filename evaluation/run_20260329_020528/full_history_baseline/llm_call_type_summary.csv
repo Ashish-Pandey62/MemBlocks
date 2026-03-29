@@ -4,4 +4,4 @@ ps2_conflict,0,0,0,0,,,,,,
 retrieval,0,0,0,0,,,,,,
 core_memory,0,0,0,0,,,,,,
 summary,0,0,0,0,,,,,,
-conversation,100,333909,8049,341958,2530.9999999881256,12281.00000001723,6432.530000000261,9050.899999991816,ollama,hf.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF:Q4_K_M
+conversation,100,407547,4667,412214,3468.9999999827705,27062.000000005355,9921.41999999847,16713.950000007753,ollama,hf.co/nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF:Q4_K_M
