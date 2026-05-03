@@ -1,12 +1,17 @@
 # MemBlocks
 
-> Modular Memory Management System for LLMs with intelligent retrieval and context organization
+> Python library for modular memory management in LLM applications with intelligent retrieval and context organization
 
 ![Architecture](docs/assets/memBlocks_diagram1.png)
 
 ## Overview
 
-MemBlocks is a sophisticated memory management system designed to solve the context problem in LLM applications. Instead of sending entire chat histories or using basic RAG, MemBlocks provides modular, intelligent memory management that thinks like humans organize information.
+**MemBlocks** is a Python library that solves the context problem in LLM applications. Instead of sending entire chat histories or using basic RAG, MemBlocks provides modular, intelligent memory management that organizes information the way humans do.
+
+This repository contains:
+- **`memblocks_lib/`** - The core Python library (install with `pip install memblocks`)
+- **Demo applications** showing how to use the library in different contexts
+- **Evaluation harness** for benchmarking retrieval performance
 
 ### The Problem
 
@@ -46,12 +51,6 @@ Not just vector search - a multi-stage intelligent system:
 4. **Intelligent Reranking**: Considers recency, source, and entity matches
 5. **Budget-Aware Assembly**: Fit context within token limits with diversity
 
-### Three Ways to Use MemBlocks
-
-1. **Python Library**: Build memory-enhanced apps programmatically
-2. **REST API**: Access via FastAPI backend (for web apps, mobile, etc.)
-3. **MCP Server**: Integrate with AI assistants (Claude Desktop, OpenCode, Cline)
-
 ## Quick Start
 
 ### Prerequisites
@@ -88,9 +87,7 @@ Not just vector search - a multi-stage intelligent system:
    - Qdrant (vector database) on port 6333
    - Ollama (embeddings) on port 11434
 
-### Usage
-
-#### Option 1: Python Library
+### Basic Usage
 
 ```python
 from memblocks import MemBlocksClient
@@ -120,73 +117,199 @@ results = await client.query(
 print(results[0].content)  # "Project deadline is March 25, 2024"
 ```
 
-See [Library Documentation](docs/LIBRARY.md) for complete API reference.
+See the [Library Documentation](docs/memblockslib_docs/) for complete API reference.
 
-#### Option 2: REST API
+## Repository Structure
 
+This repository is organized as a UV workspace monorepo:
+
+### Core Library
+
+```
+memblocks_lib/           # Core Python library - the heart of MemBlocks
+├── src/memblocks/       # Library source code
+│   ├── client.py        # Main MemBlocksClient API
+│   ├── services/        # Memory operations (semantic, episodic, core, resources)
+│   ├── storage/         # Vector DB and persistence layer
+│   ├── llm/             # LLM provider integrations
+│   ├── models/          # Data models and schemas
+│   └── prompts/         # LLM prompts for query understanding & extraction
+└── pyproject.toml       # Library dependencies
+```
+
+**What it does**: Provides the complete memory management system as a Python package. Install with `uv pip install -e memblocks_lib` or use directly in code.
+
+**Key components**:
+- **Client API** (`client.py`): High-level interface for creating blocks, storing/querying memories
+- **Services** (`services/`): Business logic for each memory type (semantic, episodic, core, resources)
+- **Storage** (`storage/`): Qdrant vector database operations, chunking, embedding
+- **LLM Integration** (`llm/`): Provider-agnostic LLM calling for Groq, OpenRouter, etc.
+- **Models** (`models/`): Pydantic schemas for memory blocks, queries, results
+
+### Demo Applications
+
+The following folders demonstrate different ways to use the MemBlocks library:
+
+#### 1. REST API Backend (`backend/`)
+
+```
+backend/                 # FastAPI REST API demo
+├── src/api/             # API routes and endpoints
+│   ├── main.py          # FastAPI app entrypoint
+│   ├── routes/          # Block, memory, session endpoints
+│   └── middleware/      # Authentication (Clerk), CORS
+└── pyproject.toml       # Backend dependencies
+```
+
+**Purpose**: Shows how to wrap MemBlocks in a REST API for web/mobile apps.
+
+**Run it**:
 ```bash
-# Start backend
-uv run python -m uvicorn backend.src.api.main:app --host 0.0.0.0 --port 8001 --reload
+uv run python -m uvicorn backend.src.api.main:app --reload
 ```
 
-API documentation available at: `http://localhost:8000/docs`
+**Connects to**: `memblocks_lib` as a Python dependency.
 
-See [API Documentation](docs/API.md) for endpoint reference.
-
-#### Option 3: MCP Server
-
-For AI assistants like Claude Desktop or OpenCode:
-
-```json
-{
-  "mcpServers": {
-    "memblocks": {
-      "command": "uv",
-      "args": ["run", "--directory", "mcp_server", "memblocks-mcp"],
-      "env": {
-        "MEMBLOCKS_USER_ID": "your_user_id"
-      }
-    }
-  }
-}
-```
-
-See [MCP Server Guide](docs/MCP_SERVER.md) for setup instructions.
-
-## Project Structure
+#### 2. MCP Server (`mcp_server/`)
 
 ```
-MemBlocks/
-├── memblocks_lib/      # Core Python library
-│   ├── src/memblocks/  # Library source code
-│   └── pyproject.toml  # Library dependencies
-├── backend/            # FastAPI REST API
-│   ├── src/api/        # API routes and models
-│   └── pyproject.toml  # API dependencies
-├── mcp_server/         # MCP server for AI assistants
-│   ├── server.py       # MCP server implementation
-│   ├── cli.py          # CLI for block management
-│   └── pyproject.toml  # MCP dependencies
-├── frontend/           # React web interface (optional)
-├── tests/              # Integration tests
-├── docs/               # Comprehensive documentation
-│   ├── ARCHITECTURE.md # System design and concepts
-│   ├── DEPLOYMENT.md   # Docker and deployment guide
-│   ├── API.md          # REST API reference
-│   ├── MCP_SERVER.md   # MCP server usage
-│   └── LIBRARY.md      # Python library API
-├── docker-compose.yml  # Infrastructure services
-├── .env.example        # Environment configuration template
-└── pyproject.toml      # Workspace configuration
+mcp_server/              # Model Context Protocol server demo
+├── server.py            # MCP server implementation
+├── cli.py               # CLI for block management
+├── state.py             # Shared state management
+└── pyproject.toml       # MCP server dependencies
 ```
+
+**Purpose**: Shows how to integrate MemBlocks with AI assistants (Claude Desktop, OpenCode, Cline) using the MCP protocol.
+
+**Run it**: Configure in your AI assistant's MCP settings (see [MCP README](mcp_server/README.md)).
+
+**Connects to**: `memblocks_lib` as a Python dependency.
+
+#### 3. Web Frontend (`frontend/`)
+
+```
+frontend/                # React web UI demo
+├── src/
+│   ├── api/client.js    # API client for backend
+│   ├── components/      # ChatInterface, BlockManager, AnalyticsPanel
+│   └── pages/           # Landing, Workspace
+└── package.json         # Node dependencies
+```
+
+**Purpose**: Shows how to build a web interface for MemBlocks.
+
+**Run it**:
+```bash
+cd frontend && npm install && npm run dev
+```
+
+**Connects to**: `backend/` REST API (not directly to the library).
+
+### Supporting Folders
+
+#### Evaluation (`evaluation/`)
+
+```
+evaluation/              # Benchmarking and performance testing
+├── run_memblocks_evaluation.py  # Main evaluation runner
+├── datasets/            # Test message datasets
+├── methods/             # Configuration variants to compare
+└── runs/                # Output metrics and reports
+```
+
+**Purpose**: Benchmark MemBlocks retrieval quality, token usage, and latency against baselines (e.g., full chat history).
+
+**Run it**:
+```bash
+uv run python evaluation/run_memblocks_evaluation.py --enforce-30
+```
+
+**Connects to**: `memblocks_lib` as a Python dependency.
+
+#### Tests (`tests/`)
+
+```
+tests/                   # Integration tests
+├── test_hybrid.py       # Hybrid retrieval tests
+└── test_store_tools.py  # Storage operations tests
+```
+
+**Purpose**: Integration tests for the library.
+
+**Run it**:
+```bash
+uv run pytest tests/
+```
+
+#### Documentation (`docs/`)
+
+```
+docs/
+└── memblockslib_docs/   # Library documentation
+    ├── 01_SETUP_GUIDE.md
+    ├── 02_METHODS_AND_INTERFACES.md
+    └── 03_TECHNICAL_OVERVIEW.md
+```
+
+**Purpose**: Comprehensive documentation for the MemBlocks library API, architecture, and usage patterns.
+
+### Infrastructure
+
+```
+docker-compose.yml       # Qdrant + Ollama services
+pyproject.toml           # UV workspace configuration
+.env.example             # Environment template
+```
+
+**What it does**: Defines the required services (Qdrant vector DB, Ollama embeddings) and workspace structure.
+
+## How It All Connects
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    MemBlocks Library                        │
+│                   (memblocks_lib/)                          │
+│                                                             │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │ Client   │→ │ Services │→ │ Storage  │→ │ Qdrant   │   │
+│  │   API    │  │ (Memory) │  │ (Vector) │  │ + Ollama │   │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
+│                                                             │
+└──────────────┬────────────┬─────────────┬──────────────────┘
+               │            │             │
+       ┌───────▼───┐  ┌─────▼─────┐  ┌───▼────────┐
+       │  Backend  │  │    MCP    │  │ Evaluation │
+       │  (REST)   │  │  Server   │  │  Harness   │
+       └─────┬─────┘  └───────────┘  └────────────┘
+             │
+       ┌─────▼─────┐
+       │ Frontend  │
+       │  (React)  │
+       └───────────┘
+```
+
+**Flow**:
+1. **Library** (`memblocks_lib/`) is the core - all other components depend on it
+2. **Backend** (`backend/`) wraps the library in a REST API
+3. **Frontend** (`frontend/`) consumes the backend API for web UI
+4. **MCP Server** (`mcp_server/`) uses the library directly for AI assistant integration
+5. **Evaluation** (`evaluation/`) uses the library directly for benchmarking
+6. All components connect to shared infrastructure (Qdrant, Ollama) via Docker Compose
 
 ## Documentation
 
-- **[Architecture Overview](docs/ARCHITECTURE.md)** - Core concepts and system design
-- **[Python Library API](docs/LIBRARY.md)** - Programmatic usage reference
-- **[REST API](docs/API.md)** - Backend endpoint documentation
-- **[MCP Server Guide](docs/MCP_SERVER.md)** - AI assistant integration
-- **[Deployment Guide](docs/DEPLOYMENT.md)** - Docker setup and production deployment
+Comprehensive documentation is available in the [`docs/memblockslib_docs/`](docs/memblockslib_docs/) folder:
+
+- **[Setup Guide](docs/memblockslib_docs/01_SETUP_GUIDE.md)** - Installation and configuration
+- **[Methods and Interfaces](docs/memblockslib_docs/02_METHODS_AND_INTERFACES.md)** - Complete API reference
+- **[Technical Overview](docs/memblockslib_docs/03_TECHNICAL_OVERVIEW.md)** - Architecture and design decisions
+
+Demo-specific documentation:
+- **[Backend README](backend/ReadMe.md)** - REST API setup and usage
+- **[Frontend README](frontend/README.md)** - Web UI setup and architecture
+- **[MCP Server README](mcp_server/README.md)** - MCP integration guide
+- **[Evaluation README](evaluation/README.md)** - Benchmarking and evaluation
 
 ## Key Concepts
 
@@ -242,12 +365,12 @@ OLLAMA_BASE_URL=http://localhost:11434
 # Reranking (improves retrieval quality)
 COHERE_API_KEY=your_cohere_key
 
-# Authentication (for backend API)
+# Authentication (for backend API demo only)
 CLERK_PUBLISHABLE_KEY=your_clerk_key
 CLERK_SECRET_KEY=your_clerk_secret
 ```
 
-## Examples
+## Library Usage Examples
 
 ### Example 1: Personal AI Assistant with Memory
 
@@ -257,12 +380,16 @@ work_block = await client.create_block(name="Work")
 personal_block = await client.create_block(name="Personal")
 
 # Work conversation - stores in work block
-await session.add_message(role="user", content="Meeting is at 2pm tomorrow")
-# Automatically extracts: "meeting at 2pm tomorrow" → work_block
+await client.add_semantic_memory(
+    block_id=work_block.id,
+    content="Meeting is at 2pm tomorrow"
+)
 
 # Personal conversation - stores in personal block
-await session.add_message(role="user", content="Dinner reservation at 7pm")
-# Automatically extracts: "dinner at 7pm" → personal_block
+await client.add_semantic_memory(
+    block_id=personal_block.id,
+    content="Dinner reservation at 7pm"
+)
 
 # Later queries only search relevant context
 work_results = await client.query(work_block.id, "when is the meeting?")
@@ -344,12 +471,49 @@ uv run pytest tests/test_hybrid.py
 uv run pytest --cov=memblocks_lib tests/
 ```
 
-### Project Development
+### Workspace Structure
 
-See [docs/development/](docs/development/) for:
-- Token tracking implementation plan
-- Recent library changes and rationale
-- Architecture decisions
+This is a UV workspace with three Python packages:
+
+```toml
+[tool.uv.workspace]
+members = ["memblocks_lib", "backend", "mcp_server"]
+```
+
+Install all packages in development mode:
+```bash
+uv sync --all-packages
+```
+
+### Running Demo Applications
+
+**Backend API**:
+```bash
+uv run python -m uvicorn backend.src.api.main:app --reload
+```
+
+**Frontend**:
+```bash
+cd frontend && npm run dev
+```
+
+**MCP Server** (via OpenCode):
+```json
+{
+  "mcp": {
+    "memblocks": {
+      "type": "local",
+      "command": ["uv", "run", "python", "-m", "mcp_server.server"],
+      "environment": {"MEMBLOCKS_USER_ID": "your_user_id"}
+    }
+  }
+}
+```
+
+**Evaluation**:
+```bash
+uv run python evaluation/run_memblocks_evaluation.py --enforce-30
+```
 
 ## Contributing
 
