@@ -1,0 +1,1572 @@
+[
+  {
+    "timestamp": "2026-03-28T20:20:53.899182+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Hi, I am Arjun Patel. Please remember that I lead the platform team at NovaRetail.",
+      "num_results": 0,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:21:07.961536+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Our production stack is FastAPI, Postgres, Redis, and Qdrant.",
+      "num_results": 0,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:21:26.467072+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "The current API p95 latency is 420 milliseconds and our target is below 250 milliseconds.",
+      "num_results": 0,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:21:41.025749+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "My timezone is Asia/Kolkata and I usually do release reviews at 6:30 PM IST.",
+      "num_results": 0,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:21:54.993157+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "The next release freeze is on 2026-04-15.",
+      "num_results": 0,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:22:10.533965+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Please note that service alpha depends on service beta for inventory sync.",
+      "num_results": 0,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:22:25.715727+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "We have three active environments: dev, staging, and prod.",
+      "num_results": 0,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:22:46.376760+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Staging deploys every Tuesday and Friday at 11:00 AM IST.",
+      "num_results": 0,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:23:04.318155+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Production deploys happen every Wednesday at 8:00 PM IST.",
+      "num_results": 0,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:23:20.540911+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "The incident commander for this quarter is Meera Joshi.",
+      "num_results": 0,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:23:25.867149+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_202325_867149",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:23:41.792388+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Reminder: the Redis cache TTL for product cards is 1800 seconds.",
+      "num_results": 1,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:24:05.513667+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Security policy says all secrets must rotate every 90 days.",
+      "num_results": 3,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:24:36.306721+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Actually, update that latency metric: API p95 is now 360 milliseconds after the last optimization.",
+      "num_results": 5,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:25:23.168316+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "We started using a canary rollout at 10 percent traffic for checkout service.",
+      "num_results": 7,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:25:56.495593+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "The checkout database read replica is in ap-south-1b.",
+      "num_results": 6,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:26:21.479410+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_202621_479410",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:26:30.330610+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_202325_867149"
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:26:36.757562+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Please remember this ticket: NR-4812 tracks payment retry bugs.",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:27:07.476135+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Our SLO for checkout success rate is 99.9 percent.",
+      "num_results": 7,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:27:56.752017+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Correction: staging deploys moved to Monday and Thursday at 10:30 AM IST.",
+      "num_results": 6,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:28:31.864675+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "The owner of service beta changed from Karan to Aditi Rao.",
+      "num_results": 5,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:29:04.232134+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "I prefer concise status summaries with bullet points.",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:29:38.968082+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_202938_968082",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:29:58.471216+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Weekly architecture sync is every Monday at 4:00 PM IST.",
+      "num_results": 7,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:30:03.640994+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_202621_479410"
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:30:46.392596+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "We use moonshotai/kimi-k2-instruct-0905 for conversational responses in this experiment.",
+      "num_results": 6,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:31:35.823186+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Core memory should keep my role, org, and preference for concise summaries.",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:32:12.707841+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Semantic memory should track changing facts like owners, schedules, and metrics.",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:32:55.442322+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Conflict management should replace outdated values when I send corrections.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:33:06.207637+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_203306_207128",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:33:20.915822+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "What is the latest staging deployment schedule?",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:33:29.119792+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_202938_968082"
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:33:56.576562+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Who is the current owner of service beta?",
+      "num_results": 6,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:34:34.933617+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "What is the most recent API p95 latency value I shared?",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:35:18.965487+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "When is the release freeze date?",
+      "num_results": 7,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:36:03.234719+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Give me a short recap of my role, team context, and current reliability priorities.",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:36:17.401809+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_203617_401809",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:36:33.434539+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_203617_401809"
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:36:40.099613+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "What was the API p95 latency target again?",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:37:12.118492+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Can you remind me of the production deploy schedule?",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:37:34.550911+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_203306_207128"
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:37:38.943310+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Who is the incident commander for this quarter?",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:37:54.815244+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "What is the Redis cache TTL for product cards?",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:38:10.409517+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "When is the next release freeze?",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:38:14.725331+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_203814_725331",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:38:25.080763+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "What services depend on each other?",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:38:48.488573+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "What are our three environments?",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:39:19.339053+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "When does staging deploy?",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:39:51.532283+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "When does production deploy?",
+      "num_results": 6,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:40:22.584240+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "How often do secrets need to rotate?",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:40:38.561125+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_204038_561125",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:41:10.258963+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Update: we increased the canary rollout to 15 percent.",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:42:02.412617+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Actually, service beta now depends on service gamma for auth.",
+      "num_results": 6,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:42:02.443419+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_203814_725331"
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:42:48.613818+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "New info: we are adding a new service delta for notifications.",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:43:25.177539+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "The Redis TTL for session tokens is 3600 seconds.",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:43:53.994795+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "We are migrating from Postgres 15 to Postgres 16 next month.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:44:03.865171+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_204403_865171",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:44:25.153766+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_204038_561125"
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:44:25.951810+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Add Meera Joshi to the on-call rotation for next quarter.",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:45:08.731335+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "The Qdrant cluster now has 3 replicas for high availability.",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:45:31.465843+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Update: staging deploys are now daily at 9 AM IST.",
+      "num_results": 5,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:45:43.591347+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_204403_865171"
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:45:52.739068+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "New target: API p50 latency should be below 100ms.",
+      "num_results": 7,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:46:08.935664+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "We are deprecating service epsilon by end of Q2.",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:46:13.559274+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_204613_559274",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:46:25.006299+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "The new caching strategy uses Redis Cluster instead of single instance.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:47:04.947191+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Service alpha now has auto-scaling enabled with min 2, max 10 replicas.",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:47:36.347748+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Add a new dependency: service beta depends on service zeta for payments.",
+      "num_results": 5,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:48:07.498941+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Update: production deploy window is now Wednesday 6-8 PM IST.",
+      "num_results": 7,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:48:31.238365+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "New metric: error rate target is below 0.1 percent.",
+      "num_results": 7,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:48:49.660881+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_204849_660881",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:49:15.101254+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "We are adding circuit breakers to all inter-service communication.",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:49:15.112022+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_204613_559274"
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:49:52.127056+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "The incident response SLA is now 15 minutes for P1 issues.",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:50:27.755751+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Update: canary rollout is now at 25 percent for checkout service.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:51:01.324480+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "New service: service eta handles email notifications.",
+      "num_results": 7,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:51:56.045548+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "We are implementing distributed tracing with Jaeger.",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:52:18.420198+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_205218_419664",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:52:41.489916+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_204849_660881"
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:52:43.026371+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Reminder: all PRs need two approvals for production changes.",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:53:25.998528+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Update: Redis sentinel is being replaced with Redis Cluster.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:54:20.487547+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "New team member: Rahul Sharma joins the platform team.",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:54:54.870814+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "The SLA for core APIs is 99.95 percent uptime.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:55:50.851781+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "We are migrating to Kubernetes 1.28 next sprint.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:56:13.409025+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_205613_409025",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:56:25.396530+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_205218_419664"
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:56:28.382540+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "New policy: all services must have health check endpoints.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:57:13.247520+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Update: staging environment now has production-like data.",
+      "num_results": 7,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:57:54.451256+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Service gamma is being split into gamma-auth and gamma-data.",
+      "num_results": 7,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:58:26.613663+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "The new monitoring stack uses Grafana and Prometheus.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:59:13.313544+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "We are implementing blue-green deployments for production.",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T20:59:36.516223+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_205936_516223",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:00:04.146250+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_205613_409025"
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:00:06.183808+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "New requirement: all APIs must support request idempotency.",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:00:46.580826+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Update: the release freeze is now extended to April 20.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:01:26.004003+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Service delta will use WebSockets for real-time notifications.",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:02:06.622103+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "The team is adopting trunk-based development starting next week.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:02:33.273222+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "New metric: mean time to recovery target is 30 minutes.",
+      "num_results": 7,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:02:43.933706+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_210243_933706",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:02:57.324242+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "We are adding rate limiting to all public APIs.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:02:57.333894+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_205936_516223"
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:03:54.613470+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Service eta will integrate with SendGrid for email delivery.",
+      "num_results": 7,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:04:39.780654+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "The new CI pipeline reduces build time by 40 percent.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:05:30.135453+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Update: Qdrant is now using HNSW index for faster searches.",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:06:02.282961+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "New standard: all services must implement graceful shutdown.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:06:17.380787+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_210617_380787",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:06:49.982464+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_210243_933706"
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:06:55.782800+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "We are adding API versioning with URL path prefix.",
+      "num_results": 7,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:07:42.762420+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Service theta handles scheduled background jobs.",
+      "num_results": 7,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:08:27.770359+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "The platform team is now responsible for the API gateway.",
+      "num_results": 5,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:09:09.042562+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "New requirement: all deployments must pass smoke tests.",
+      "num_results": 6,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:09:52.314569+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Update: Redis TTL for rate limiting is now 60 seconds.",
+      "num_results": 8,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:10:18.101344+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_211018_101344",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:10:41.507646+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_210617_380787"
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:10:45.268627+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "We are implementing feature flags with LaunchDarkly.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:11:18.552696+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Service iota handles user authentication and authorization.",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:12:07.295821+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "The new logging standard uses structured JSON logs.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:12:52.087007+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "We are adding OpenTelemetry instrumentation to all services.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:13:32.971387+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "New policy: database migrations must be backward compatible.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:13:53.322886+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_211353_322886",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:14:17.695332+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Service kappa handles file uploads and storage.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:15:10.746061+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Update: production now has automated rollback on error spike.",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:15:37.595863+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_211018_101344"
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:16:09.906166+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "The team is evaluating Temporal for workflow orchestration.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:17:01.718755+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "New requirement: all services must expose Prometheus metrics.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:17:52.897261+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Service lambda handles payment processing with Stripe.",
+      "num_results": 9,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:18:25.156710+00:00",
+    "event_name": "on_pipeline_started",
+    "payload": {
+      "run_id": "pipeline_20260328_211825_156710",
+      "message_count": 20
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:18:51.112944+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "We are implementing CQRS for the order management service.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-28T21:20:03.665137+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Update: staging environment refresh is now weekly on Mondays.",
+      "num_results": 6,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-29T03:22:07.933657+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "New standard: API responses must include request_id header.",
+      "num_results": 6,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-29T03:23:23.324229+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "Service mu handles inventory management and stock updates.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-29T03:24:31.428591+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_211353_322886"
+    }
+  },
+  {
+    "timestamp": "2026-03-29T03:24:35.466955+00:00",
+    "event_name": "on_memory_retrieved",
+    "payload": {
+      "source": "semantic",
+      "collection": "block_ce8fe3135809_semantic",
+      "query": "The new deployment uses Helm charts for Kubernetes.",
+      "num_results": 10,
+      "num_expanded_queries": 4,
+      "num_hypothetical_paragraphs": 0,
+      "reranked": true
+    }
+  },
+  {
+    "timestamp": "2026-03-29T03:27:49.774216+00:00",
+    "event_name": "on_pipeline_completed",
+    "payload": {
+      "run_id": "pipeline_20260328_211825_156710"
+    }
+  }
+]

@@ -515,7 +515,7 @@ from memblocks import MemBlocksConfig
 config = MemBlocksConfig(
     llm_provider_name="groq",
     groq_api_key="gsk_xxxxxxxxx",
-    llm_model="mmoonshotai/kimi-k2-instruct-0905",
+    llm_model="moonshotai/kimi-k2-instruct-0905",
 )
 
 # Automatically instantiated by MemBlocksClient
@@ -533,7 +533,7 @@ response = await provider.chat([{"role": "user", "content": "Hello!"}])
 | Field | Description |
 |-------|-------------|
 | `groq_api_key` | Required. Groq API key. |
-| `llm_model` | Model identifier, e.g. `mmoonshotai/kimi-k2-instruct-0905`. |
+| `llm_model` | Model identifier, e.g. `moonshotai/kimi-k2-instruct-0905`. |
 | `llm_convo_temperature` | Default temperature for `chat()` calls (default: `0.7`). |
 
 ### GeminiLLMProvider
@@ -590,7 +590,7 @@ from memblocks import MemBlocksClient, MemBlocksConfig
 config = MemBlocksConfig(
     llm_provider_name="openrouter",
     openrouter_api_key="sk-or-xxxxxxxxx",
-    llm_model="mmoonshotai/kimi-k2-instruct-0905",
+    llm_model="moonshotai/kimi-k2-instruct-0905",
 )
 
 # Automatically instantiated by MemBlocksClient
@@ -603,7 +603,7 @@ response = await client.conversation_llm.chat([{"role": "user", "content": "Hell
 | Field | Description |
 |-------|-------------|
 | `openrouter_api_key` | Required. OpenRouter API key from [openrouter.ai/keys](https://openrouter.ai/keys). |
-| `llm_model` | Model identifier, e.g. `mmoonshotai/kimi-k2-instruct-0905`. |
+| `llm_model` | Model identifier, e.g. `moonshotai/kimi-k2-instruct-0905`. |
 | `openrouter_fallback_models` | Comma-separated list of fallback model IDs tried in order on failure. |
 | `openrouter_enable_thinking` | `true`/`false` — enable extended thinking (reasoning models only). |
 
@@ -767,7 +767,7 @@ config = MemBlocksConfig(
     llm_settings=LLMSettings(
         default=LLMTaskSettings(
             provider="groq",
-            model="mmoonshotai/kimi-k2-instruct-0905",
+            model="moonshotai/kimi-k2-instruct-0905",
             temperature=0.0,
         ),
         conversation=LLMTaskSettings(

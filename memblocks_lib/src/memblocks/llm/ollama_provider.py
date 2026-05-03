@@ -213,6 +213,8 @@ class OllamaLLMProvider(LLMProvider):
             base_url=self._base_url,
             keep_alive=self._keep_alive,
             format="json",
+            num_ctx=264000,
+            reasoning=False
         )
 
         # include_raw=True so we can read usage_metadata from the raw AIMessage.
@@ -306,6 +308,8 @@ class OllamaLLMProvider(LLMProvider):
             temperature=effective_temp,
             base_url=self._base_url,
             keep_alive=self._keep_alive,
+            num_ctx=264000,
+            reasoning=False,
         )
         t0 = time.monotonic()
         error_msg: Optional[str] = None

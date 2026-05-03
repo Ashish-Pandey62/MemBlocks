@@ -2,7 +2,7 @@
 
 This folder contains a transparency-driven evaluation harness for MemBlocks.
 
-It is built to evaluate 30-message workloads and produce comparison-ready metrics across multiple method variants.
+It is built to evaluate message workloads (10, 30, or 100+ messages) and produce comparison-ready metrics across multiple method variants.
 
 ## What It Tracks
 
@@ -40,27 +40,194 @@ It is built to evaluate 30-message workloads and produce comparison-ready metric
 
 ## Quick Start
 
+### Run Full Evaluation (MemBlocks + Baseline)
+
 From repository root:
 
 ```bash
-uv run python evaluation/run_memblocks_evaluation.py --enforce-30 --use-reference-task-models
+# 10 messages (fast)
+uv run python evaluation/run_memblocks_evaluation.py \
+  --dataset evaluation/datasets/test_10_messages.json \
+  --methods evaluation/methods/test_single_method.json \
+  --out-dir evaluation/runs \
+  --turn-delay-seconds 1.5 \
+  --method-delay-seconds 2.0 \
+  --memory-window-limit 20 \
+  --keep-last-n 10 \
+  --session-add-background \
+  --no-flush-at-end \
+  --use-reference-task-models
+
+# 30 messages (default)
+uv run python evaluation/run_memblocks_evaluation.py \
+  --dataset evaluation/datasets/default_30_messages.json \
+  --methods evaluation/methods/test_single_method.json \
+  --out-dir evaluation/runs \
+  --turn-delay-seconds 1.5 \
+  --method-delay-seconds 2.0 \
+  --memory-window-limit 20 \
+  --keep-last-n 10 \
+  --session-add-background \
+  --no-flush-at-end \
+  --use-reference-task-models
+
+# 100 messages (comprehensive)
+uv run python evaluation/run_memblocks_evaluation.py \
+  --dataset evaluation/datasets/test_100_messages.json \
+  --methods evaluation/methods/test_single_method.json \
+  --out-dir evaluation/runs \
+  --turn-delay-seconds 1.5 \
+  --method-delay-seconds 2.0 \
+  --memory-window-limit 20 \
+  --keep-last-n 10 \
+  --session-add-background \
+  --no-flush-at-end \
+  --use-reference-task-models
 ```
 
 This will:
 
-1. Load the 30-message dataset
-2. Run each method variant in `default_methods.json`
-3. Write a new run directory under `evaluation/runs/run_YYYYMMDD_HHMMSS`
+1. Load the dataset (10/30/100 messages)
+2. Run the MemBlocks method variant in `test_single_method.json`
+3. Run `full_history_baseline` for comparison
+4. Write a new run directory under `evaluation/runs/run_YYYYMMDD_HHMMSS`
 
-By default, this also runs `full_history_baseline` so you can compare how many
-tokens the main LLM would consume if you simply sent the entire chat history
-on every turn.
+### Re-run Only Baseline (Update Existing Run)
 
-To disable it:
+If you need to re-run just the baseline (e.g., after fixing num_ctx or changing models):
+
+```bash
+# Re-run baseline for existing run_20260329_020528
+uv run python evaluation/rerun_baseline.py \
+  --dataset evaluation/datasets/test_100_messages.json \
+  --methods evaluation/methods/test_single_method.json \
+  --out-dir evaluation/runs \
+  --turn-delay-seconds 1.5 \
+  --method-delay-seconds 2.0 \
+  --memory-window-limit 20 \
+  --keep-last-n 10 \
+  --session-add-background \
+  --no-flush-at-end \
+  --use-reference-task-models
+```
+
+**Note:** Edit the run directory name in `rerun_baseline.py` line 26 to match your target run.
+
+The script will:
+1. Re-run only the baseline evaluation
+2. Update `full_history_baseline/method_report.json`
+3. Regenerate all comparison files (`comparison.csv`, `comparison.md`, etc.)
+
+### Fix Timing Anomalies
+
+If timing data was corrupted (e.g., computer sleep during evaluation):
+
+```bash
+# Fix timing anomalies > 120 seconds, replace with 20 seconds
+python evaluation/fix_timing.py \
+  evaluation/runs/run_20260329_020528/memblocks_full/method_report.json \
+  120000 \
+  20000
+```
+
+This will:
+1. Create backup: `method_report.json.backup`
+2. Replace anomalous timing values
+3. Recalculate aggregated metrics (avg, p95, high, low)
+
+To disable baseline:
 
 ```bash
 uv run python evaluation/run_memblocks_evaluation.py --no-full-history-baseline
 ```
+
+## Configuration Flags
+
+### Required Flags
+
+- `--dataset <path>`: Path to dataset JSON file (array of message strings)
+- `--methods <path>`: Path to methods JSON file (array of method configs)
+- `--use-reference-task-models`: Use task-specific model routing (ollama for retrieval/PS2, groq for PS1/core/summary)
+
+### Dataset Options
+
+- `--enforce-30`: Enforce exactly 30 messages in dataset (legacy validation)
+- `--out-dir <path>`: Output directory for run results (default: `evaluation/runs`)
+
+### Model Configuration
+
+Models are configured in `evaluation/run_memblocks_evaluation.py` in `build_reference_llm_settings()`:
+
+**Current Configuration:**
+- **Conversation:** `hf.co/nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF:Q4_K_M` (ollama, fast)
+- **Retrieval:** `hf.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF:Q4_K_M` (ollama)
+- **PS1 Extraction:** `openai/gpt-oss-120b` (groq)
+- **PS2 Conflict:** `hf.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF:Q4_K_M` (ollama)
+- **Core Memory:** `openai/gpt-oss-120b` (groq)
+- **Summary:** `openai/gpt-oss-120b` (groq)
+
+Edit lines 359-387 to change models.
+
+### Memory Window Settings
+
+Controls when background memory pipeline runs fire:
+
+- `--memory-window-limit <int>`: Trigger pipeline flush after N messages (default: 20)
+- `--keep-last-n <int>`: Messages kept in session after flush (default: 10)
+
+**Example:** With 100 messages, `--memory-window-limit 20 --keep-last-n 10` will:
+- Flush pipeline at message 20, 40, 60, 80, 100
+- Keep last 10 messages in window after each flush
+
+### Background Processing
+
+Controls async execution of session.add (PS1, PS2, core memory, summary):
+
+- `--session-add-background`: Run session.add in background (default: on)
+- `--no-session-add-background`: Run session.add inline (blocks user-facing flow)
+
+**Recommendation:** Always use `--session-add-background` to match production behavior.
+
+### Pipeline Flush Control
+
+- `--flush-at-end`: Run final pipeline flush after all messages (default: on)
+- `--no-flush-at-end`: Skip final flush (faster, for scaling analysis)
+
+**Use `--no-flush-at-end` when:**
+- Testing scaling patterns across message counts
+- You don't need final summary generation
+- Reducing evaluation time
+
+### Rate Limiting
+
+Built-in delays to avoid model RPM limits:
+
+- `--turn-delay-seconds <float>`: Delay after each turn (default: 3.25)
+- `--method-delay-seconds <float>`: Delay between method variants (default: 8.0)
+
+**For faster local testing:** Use `--turn-delay-seconds 1.5 --method-delay-seconds 2.0`
+
+### Baseline Options
+
+- `--full-history-baseline`: Run full-chat-history baseline (default: on)
+- `--no-full-history-baseline`: Skip baseline
+- `--baseline-system-prompt <str>`: System prompt for baseline (default: "You are a helpful assistant with memory of past conversations.")
+
+### Error Handling
+
+- `--continue-on-error`: Continue evaluation if a turn fails (default: off)
+- `--user-prefix <str>`: Prefix for generated user IDs (default: "evaluation_user")
+
+## Available Datasets
+
+- `evaluation/datasets/test_10_messages.json` - 10 messages (fast testing)
+- `evaluation/datasets/default_30_messages.json` - 30 messages (default)
+- `evaluation/datasets/test_100_messages.json` - 100 messages (comprehensive scaling analysis)
+
+## Available Method Configurations
+
+- `evaluation/methods/default_methods.json` - 3 method variants (full, no-rerank, sparse-only)
+- `evaluation/methods/test_single_method.json` - Single method (memblocks_full) for faster testing
 
 ## Rate-Limit Safety
 
