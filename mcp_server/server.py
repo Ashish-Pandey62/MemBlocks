@@ -1,9 +1,10 @@
 """
 FastMCP server for MemBlocks.
 
-Exposes MemBlocks memory tools to AI agents via stdio MCP protocol.
+Exposes MemBlocks memory tools to AI agents via stdio or HTTP MCP transports.
 """
 
+import argparse
 import asyncio
 import json
 import logging
@@ -16,6 +17,10 @@ from typing import Optional
 from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field, ConfigDict
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import JSONResponse
+import uvicorn
 
 from memblocks import MemBlocksClient, MemBlocksConfig
 from memblocks.llm.task_settings import LLMSettings, LLMTaskSettings
@@ -153,6 +158,11 @@ async def app_lifespan(server: FastMCP):
 
 
 mcp = FastMCP("memblocks_mcp", lifespan=app_lifespan)
+
+
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request):
+    return JSONResponse({"status": "healthy", "service": "memblocks_mcp"})
 
 
 # --- Helper — active block guard ---
@@ -1015,7 +1025,67 @@ async def resource_tools_guide(ctx: Context) -> str:
 # --- Entry point ---
 def main() -> None:
     """Entry point for `memblocks-mcp` CLI command."""
-    mcp.run()  # stdio transport by default
+    parser = argparse.ArgumentParser(description="MemBlocks MCP Server")
+    parser.add_argument(
+        "--transport",
+        choices=["stdio", "sse", "streamable-http", "http"],
+        default="stdio",
+        help="Transport protocol (default: stdio)",
+    )
+    parser.add_argument("--host", default="0.0.0.0", help="Host to bind (default: 0.0.0.0)")
+    parser.add_argument("--port", type=int, default=8002, help="Port to bind (default: 8002)")
+    parser.add_argument(
+        "--path",
+        default="/mcp",
+        help="HTTP path for MCP endpoint (default: /mcp)",
+    )
+    parser.add_argument(
+        "--cors",
+        action="store_true",
+        help="Enable CORS for browser-based MCP clients",
+    )
+    parser.add_argument(
+        "--cors-origins",
+        default="",
+        help="Comma-separated list of allowed CORS origins (default: *)",
+    )
+    args = parser.parse_args()
+
+    transport = "streamable-http" if args.transport == "http" else args.transport
+
+    if transport == "stdio":
+        mcp.run()
+        return
+
+    if transport == "sse":
+        if args.cors or args.cors_origins:
+            logger.warning("CORS middleware is only available for streamable-http transport")
+        mcp.run(transport="sse", host=args.host, port=args.port)
+        return
+
+    cors_enabled = args.cors or bool(args.cors_origins)
+    middleware = None
+    if cors_enabled:
+        origins = ["*"]
+        if args.cors_origins.strip():
+            origins = [o.strip() for o in args.cors_origins.split(",") if o.strip()]
+        middleware = [
+            Middleware(
+                CORSMiddleware,
+                allow_origins=origins,
+                allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+                allow_headers=[
+                    "mcp-protocol-version",
+                    "mcp-session-id",
+                    "Authorization",
+                    "Content-Type",
+                ],
+                expose_headers=["mcp-session-id"],
+            )
+        ]
+
+    app = mcp.http_app(path=args.path, middleware=middleware)
+    uvicorn.run(app, host=args.host, port=args.port)
 
 
 if __name__ == "__main__":

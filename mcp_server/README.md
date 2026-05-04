@@ -31,11 +31,48 @@
    uv run memblocks-cli --help
    ```
 
+### Running the Server
+
+**Default (stdio transport)**:
+```bash
+memblocks-mcp
+```
+
+**Streamable HTTP transport** (recommended for web/external access):
+```bash
+memblocks-mcp --transport streamable-http --port 8002
+```
+Server will be available at `http://localhost:8002/mcp`
+
+**Streamable HTTP with CORS** (for browser-based MCP clients):
+```bash
+memblocks-mcp --transport streamable-http --port 8002 --cors
+```
+Allow specific origins instead of all:
+```bash
+memblocks-mcp --transport streamable-http --port 8002 --cors-origins "https://example.com,https://app.example.com"
+```
+**Custom path** (default: `/mcp`):
+```bash
+memblocks-mcp --transport streamable-http --port 8002 --path /api/mcp
+```
+
+**SSE transport** (legacy, for backward compatibility):
+```bash
+memblocks-mcp --transport sse --port 8002
+```
+Server will be available at `http://localhost:8002/sse`
+
+**Bind to specific host** (default: `0.0.0.0` for all interfaces):
+```bash
+memblocks-mcp --transport streamable-http --host 127.0.0.1 --port 8002
+```
+
 ---
 
 ## Configuration
 
-### For OpenCode CLI
+### For OpenCode CLI (stdio)
 
 Add to your `opencode.json` (or create it in your project root):
 
@@ -57,9 +94,39 @@ Add to your `opencode.json` (or create it in your project root):
 
 **Important**: Replace `"your_user_id"` with your actual user ID (from MemBlocks backend registration).
 
-### For Claude Desktop
+### For OpenCode CLI (HTTP/SSE)
 
-Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "memblocks": {
+      "type": "url",
+      "url": "http://localhost:8002/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+
+If you change the server path, update the URL accordingly:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "memblocks": {
+      "type": "url",
+      "url": "http://localhost:8002/api/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+
+### For Claude Desktop (stdio)
+
+Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
 
 ```json
 {
@@ -75,7 +142,33 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 }
 ```
 
-### For Cline (VS Code Extension)
+### For Claude Desktop (HTTP/SSE)
+
+```json
+{
+  "mcpServers": {
+    "memblocks": {
+      "url": "http://localhost:8002/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+If you change the server path, update the URL accordingly:
+
+```json
+{
+  "mcpServers": {
+    "memblocks": {
+      "url": "http://localhost:8002/api/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+### For Cline (VS Code Extension - stdio)
 
 Add to Cline's MCP settings:
 
@@ -93,6 +186,20 @@ Add to Cline's MCP settings:
   }
 }
 ```
+
+### For Browser-Based MCP Clients
+
+Enable CORS on the server:
+
+```bash
+memblocks-mcp --transport streamable-http --port 8002 --cors
+```
+
+Use the same HTTP URL in your client:
+```text
+http://localhost:8002/mcp
+```
+
 
 ---
 
@@ -149,144 +256,107 @@ When connected to an AI assistant, the following tools become available:
 
 ### Memory Block Management
 
-#### `create_memory_block`
-Creates a new memory block.
-
-**Parameters**:
-- `name` (string): Block name
-- `description` (string, optional): Block description
-- `tags` (array, optional): Tags for organization
-
-**Example**:
-```
-AI: I'll create a memory block for your ML project.
-[calls create_memory_block with name="ML Project" description="Memory for machine learning project"]
-```
-
-#### `list_memory_blocks`
-Lists all accessible memory blocks.
+#### `memblocks_list_blocks`
+List all memory blocks for the configured user.
 
 **Parameters**: None
 
-**Returns**: List of blocks with IDs, names, and metadata
+**Returns**: JSON array of block objects with id, name, description, and is_active flag
 
-#### `get_memory_block`
-Gets details of a specific memory block.
-
-**Parameters**:
-- `block_id` (string): The block ID
-
-#### `set_active_block`
-Sets which block to use for subsequent operations.
+#### `memblocks_create_block`
+Create a new memory block.
 
 **Parameters**:
-- `block_id` (string): The block ID to activate
+- `name` (string, required): Human-readable block name
+- `description` (string, optional): Block description (max 500 chars)
 
-#### `delete_memory_block`
-Deletes a memory block and all its contents.
+**Returns**: Created block details
+
+**Note**: New blocks are not automatically activated. Use `memblocks_set_block` to activate.
+
+#### `memblocks_set_block`
+Activate a memory block for subsequent operations.
 
 **Parameters**:
-- `block_id` (string): Block ID to delete
+- `block_id` (string, required): ID of the block to activate
+
+**Returns**: Confirmation with block ID and name
 
 ---
 
-### Memory Operations
+### Memory Storage Tools
 
-#### `store_semantic_memory`
-Stores a fact or piece of information in semantic memory.
-
-**Parameters**:
-- `content` (string): The information to store
-- `metadata` (object, optional): Additional context (source, entities, etc.)
-
-**Example**:
-```
-User: Remember that the API key expires on March 25.
-AI: [calls store_semantic_memory with content="API key expires on March 25, 2024"]
-```
-
-#### `store_episodic_memory`
-Stores a conversation summary in episodic memory.
+#### `memblocks_store` (Recommended)
+Store a fact to BOTH semantic and core memory in one call.
 
 **Parameters**:
-- `summary` (string): Summary of the conversation
-- `key_points` (array): Important points discussed
+- `fact` (string, required): The fact or knowledge to store
 
-#### `update_core_memory`
-Updates the always-present core memory (persona and human profile).
+**Returns**: `{"status": "accepted"}` (processed in background)
 
-**Parameters**:
-- `persona` (string, optional): AI persona/behavior description
-- `human` (string, optional): User profile/preferences
+**When to use**: Default choice for most storage needs. Proactively call this when conversation contains information worth remembering.
 
-**Example**:
-```
-User: I prefer Python over JavaScript.
-AI: [calls update_core_memory with human="Prefers Python for development"]
-```
-
-#### `upload_resource`
-Uploads a document to the resources section (chunked and embedded).
+#### `memblocks_store_semantic`
+Store a fact to semantic memory only (searchable via vector search).
 
 **Parameters**:
-- `file_path` (string): Path to the document
-- `metadata` (object, optional): Document metadata
+- `fact` (string, required): The fact to store
+
+**Returns**: `{"status": "accepted"}` (processed in background)
+
+**When to use**: For factual knowledge best retrieved by topic keyword.
+
+#### `memblocks_store_to_core`
+Store a fact to core memory only (always-on persona and human context).
+
+**Parameters**:
+- `fact` (string, required): The fact to add/update in core memory
+
+**Returns**: `{"status": "accepted"}` (processed in background)
+
+**When to use**: For stable, identity-level facts about the user (name, role, location, preferences).
 
 ---
 
-### Retrieval Operations
+### Memory Retrieval Tools
 
-#### `query_memory`
-Searches across all memory types for relevant information.
+#### `memblocks_retrieve` (Recommended)
+Retrieve memories from both core and semantic memory.
 
 **Parameters**:
-- `query` (string): The search query
-- `top_k` (integer, optional): Number of results (default: 5)
-- `include_sections` (array, optional): Which sections to search
+- `query` (string, required): Search query for semantic memory
 
-**Returns**: Relevant memories with source tags
+**Returns**: Formatted string with core memory + semantically relevant memories
 
-**Example**:
-```
-User: What did we discuss about the API?
-AI: [calls query_memory with query="API discussion"]
-AI: Based on our previous conversation, we discussed that the API key expires on March 25.
-```
+**When to use**: Default choice for retrieval. Provides most complete context.
 
-#### `get_core_memory`
-Retrieves the current core memory (always included in context).
+#### `memblocks_retrieve_semantic`
+Retrieve only semantic memories.
+
+**Parameters**:
+- `query` (string, required): Search query
+
+**Returns**: Semantically relevant memories formatted for LLM injection
+
+#### `memblocks_retrieve_core`
+Retrieve only core memory (full content, no query needed).
 
 **Parameters**: None
 
-**Returns**: Persona and human profile
-
-#### `list_semantic_memories`
-Lists semantic memories with optional filters.
-
-**Parameters**:
-- `limit` (integer): Max results
-- `tags` (array, optional): Filter by tags
-
-#### `list_episodic_memories`
-Lists conversation summaries.
-
-**Parameters**:
-- `limit` (integer): Max results
-- `recent_days` (integer, optional): Only from last N days
+**Returns**: Full core memory (persona + human sections)
 
 ---
 
-### Background Tools (Non-Blocking)
+### MCP Resources
 
-Some tools run in the background to avoid slowing down conversation:
+- `memblocks://active-block` — Current active memory block info
+- `memblocks://tools` — Usage guide for all MCP tools
 
-#### `store_semantic_memory_bg`
-Same as `store_semantic_memory` but doesn't block the response.
+---
 
-#### `store_episodic_memory_bg`
-Same as `store_episodic_memory` but doesn't block the response.
+### MCP Prompts
 
-**Use case**: AI can continue responding while memory is being stored in the background.
+- `memblocks_storage_policy` — Mandatory behavioral policy for proactive memory storage
 
 ---
 
@@ -375,7 +445,7 @@ memblocks-cli set-block block_team_docs
 
 ## Testing Your Setup
 
-### 1. Verify MCP Server Starts
+### 1. Verify MCP Server Starts (stdio)
 
 ```bash
 uv run python -m mcp_server.server
@@ -383,7 +453,30 @@ uv run python -m mcp_server.server
 
 Should start without errors. Press Ctrl+C to stop.
 
-### 2. Test CLI Commands
+### 2. Verify HTTP Transport
+
+```bash
+# Start with streamable-http transport
+memblocks-mcp --transport streamable-http --port 8002
+```
+
+If testing from a browser-based MCP client, enable CORS:
+```bash
+memblocks-mcp --transport streamable-http --port 8002 --cors
+```
+
+Test the endpoint:
+```bash
+curl http://localhost:8002/mcp
+```
+
+For SSE transport:
+```bash
+memblocks-mcp --transport sse --port 8002
+curl http://localhost:8002/sse
+```
+
+### 3. Test CLI Commands
 
 ```bash
 # Check user ID
@@ -399,7 +492,7 @@ memblocks-cli set-block <block_id>
 memblocks-cli get-block
 ```
 
-### 3. Test MCP Integration
+### 4. Test MCP Integration (stdio)
 
 In your AI assistant:
 
@@ -412,6 +505,21 @@ AI: [Should store in semantic memory]
 
 User: What's my favorite color?
 AI: [Should retrieve from memory: "Your favorite color is blue"]
+```
+
+### 5. Test MCP Integration (HTTP/SSE)
+
+Configure your MCP client to connect via HTTP:
+
+```json
+{
+  "mcpServers": {
+    "memblocks": {
+      "url": "http://localhost:8002/mcp",
+      "transport": "http"
+    }
+  }
+}
 ```
 
 ---
@@ -434,13 +542,28 @@ uv run memblocks-cli --help
 
 Or ensure your UV virtual environment scripts are on `PATH`.
 
-### MCP Server Not Connecting
+### MCP Server Not Connecting (stdio)
 
 **Check**:
 1. Is Docker running? (Qdrant and Ollama needed)
 2. Is `MEMBLOCKS_USER_ID` set correctly in config?
 3. Check MCP server logs for errors
 4. Verify `.env` file has correct API keys
+
+### MCP Server Not Connecting (HTTP/SSE)
+
+**Check**:
+1. Is the server running with `--transport streamable-http` or `--transport sse`?
+2. Can you reach the URL via curl? `curl http://localhost:8002/mcp`
+3. Check firewall isn't blocking the port
+4. Verify the correct path (`/mcp` for streamable-http, `/sse` for SSE)
+
+### Browser Client Fails with CORS Error
+
+**Fix**:
+1. Start the server with CORS enabled: `memblocks-mcp --transport streamable-http --port 8002 --cors`
+2. If you need restricted origins, use: `--cors-origins "https://example.com"`
+3. Ensure your client uses the correct URL path (`/mcp` by default)
 
 ### Active Block Not Persisting
 
@@ -480,9 +603,20 @@ MEMBLOCKS_STATE_PATH=~/.config/memblocks/user1.json memblocks-cli whoami
 MEMBLOCKS_STATE_PATH=~/.config/memblocks/user2.json memblocks-cli whoami
 ```
 
-### Custom MCP Server Port
+### Custom Port or Host
 
-Edit `mcp_server/server.py` to change the default port (if needed for your MCP client).
+Use CLI arguments (no code changes needed):
+
+```bash
+# Custom port
+memblocks-mcp --transport streamable-http --port 9000
+
+# Bind to localhost only
+memblocks-mcp --transport streamable-http --host 127.0.0.1 --port 8002
+
+# Use SSE transport
+memblocks-mcp --transport sse --port 8002
+```
 
 ---
 
@@ -493,11 +627,16 @@ Edit `mcp_server/server.py` to change the default port (if needed for your MCP c
 │  AI Assistant   │
 │ (Claude/OpenCode)│
 └────────┬────────┘
-         │ MCP Protocol
+         │
+         ├─ stdio (default, local)
+         ├─ streamable-http (recommended for web)
+         └─ SSE (legacy)
+         │
          ▼
 ┌─────────────────┐
 │  MCP Server     │
 │  (server.py)    │
+│  :8002 /mcp     │
 └────────┬────────┘
          │
          ▼
@@ -513,8 +652,13 @@ Edit `mcp_server/server.py` to change the default port (if needed for your MCP c
 └─────────────────┘
 ```
 
+**Transports**:
+- **stdio**: Default, runs as subprocess, ideal for local MCP clients
+- **streamable-http**: HTTP-based, recommended for web/external access (port 8002)
+- **SSE**: Server-Sent Events, legacy transport for backward compatibility
+
 **Flow**:
-1. AI assistant calls MCP tool
+1. AI assistant calls MCP tool via configured transport
 2. MCP server validates and processes request
 3. Calls MemBlocks library API
 4. Library interacts with vector DB and LLMs
@@ -532,5 +676,3 @@ Edit `mcp_server/server.py` to change the default port (if needed for your MCP c
 - [MCP Protocol Specification](https://spec.modelcontextprotocol.io/)
 
 ---
-
-**Questions or issues?** Open a GitHub issue or check existing discussions.
