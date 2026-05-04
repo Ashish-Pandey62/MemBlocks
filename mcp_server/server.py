@@ -1,9 +1,10 @@
 """
 FastMCP server for MemBlocks.
 
-Exposes MemBlocks memory tools to AI agents via stdio MCP protocol.
+Exposes MemBlocks memory tools to AI agents via stdio or HTTP MCP transports.
 """
 
+import argparse
 import asyncio
 import json
 import logging
@@ -16,6 +17,10 @@ from typing import Optional
 from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, Field, ConfigDict
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import JSONResponse
+import uvicorn
 
 from memblocks import MemBlocksClient, MemBlocksConfig
 from memblocks.llm.task_settings import LLMSettings, LLMTaskSettings
@@ -153,6 +158,11 @@ async def app_lifespan(server: FastMCP):
 
 
 mcp = FastMCP("memblocks_mcp", lifespan=app_lifespan)
+
+
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request):
+    return JSONResponse({"status": "healthy", "service": "memblocks_mcp"})
 
 
 # --- Helper — active block guard ---
@@ -371,174 +381,174 @@ async def memblocks_set_block(params: SetBlockInput, ctx: Context) -> str:
     )
 
 
-# --- Tool 4 — memblocks_store_semantic ---
-class StoreSemanticInput(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
-    fact: str = Field(
-        ...,
-        description="The fact or knowledge to store in semantic memory",
-        min_length=1,
-    )
+# # --- Tool 4 — memblocks_store_semantic ---
+# class StoreSemanticInput(BaseModel):
+#     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+#     fact: str = Field(
+#         ...,
+#         description="The fact or knowledge to store in semantic memory",
+#         min_length=1,
+#     )
 
 
-@mcp.tool(
-    name="memblocks_store_semantic",
-    annotations={
-        "title": "Store to Semantic Memory",
-        "readOnlyHint": False,
-        "destructiveHint": False,
-        "idempotentHint": False,
-        "openWorldHint": False,
-    },
-)
-async def memblocks_store_semantic(params: StoreSemanticInput, ctx: Context) -> str:
-    """Store a fact or knowledge to semantic memory (searchable via vector search).
+# @mcp.tool(
+#     name="memblocks_store_semantic",
+#     annotations={
+#         "title": "Store to Semantic Memory",
+#         "readOnlyHint": False,
+#         "destructiveHint": False,
+#         "idempotentHint": False,
+#         "openWorldHint": False,
+#     },
+# )
+# async def memblocks_store_semantic(params: StoreSemanticInput, ctx: Context) -> str:
+#     """Store a fact or knowledge to semantic memory (searchable via vector search).
 
-    PREFER `memblocks_store` OVER THIS TOOL:
-    Unless you specifically need semantic-only storage, call `memblocks_store`
-    instead — it stores to both semantic and core memory in one call and is the
-    recommended default.
+#     PREFER `memblocks_store` OVER THIS TOOL:
+#     Unless you specifically need semantic-only storage, call `memblocks_store`
+#     instead — it stores to both semantic and core memory in one call and is the
+#     recommended default.
 
-    PROACTIVE STORAGE — MANDATORY BEHAVIOR:
-    You MUST call a store tool proactively whenever a conversation turn contains
-    information worth remembering, WITHOUT waiting for the user to ask you to save it.
+#     PROACTIVE STORAGE — MANDATORY BEHAVIOR:
+#     You MUST call a store tool proactively whenever a conversation turn contains
+#     information worth remembering, WITHOUT waiting for the user to ask you to save it.
 
-    Use this tool specifically for factual, topic-retrievable knowledge:
-      - Technical facts, code patterns, or implementation details
-      - Domain knowledge or research findings from the conversation
-      - Task-specific data (e.g. API keys discussed, endpoints found, configs)
-      - Any fact best retrieved by topic keyword in a future session
-
-
-    Input:
-      - fact (str): Plain text fact or knowledge to store
-
-    Returns a JSON object with:
-      - status (str): "accepted" - storage is scheduled, not yet complete
-      - message (str): Confirmation that storage was accepted
-    """
-    logger.info(f"memblocks_store_semantic: fact={params.fact[:80]!r}")
-    client: MemBlocksClient = ctx.request_context.lifespan_context["client"]
-
-    # Check for active block (synchronous validation)
-    block_id, error = _active_block_id_or_error()
-    if error:
-        logger.warning(f"memblocks_store_semantic: no active block — {error}")
-        raise ToolError(error)
-
-    # Get the block (synchronous precondition)
-    block = await client.get_block(block_id)
-    if block is None:
-        logger.warning(f"memblocks_store_semantic: block not found: {block_id}")
-        raise ToolError(f"Block '{block_id}' not found.")
-
-    # Wrap fact as messages for extraction
-    messages = [{"role": "user", "content": params.fact}]
-
-    # Dispatch background task using extract_and_store convenience method
-    _dispatch_background_task(
-        block._semantic.extract_and_store(messages),
-        task_name=f"semantic_extract_and_store(block={block_id})",
-        error_logger=logger,
-    )
-
-    # Return immediate accepted response
-    result = {
-        "status": "accepted",
-        "message": "Semantic memory storage accepted - processing in background",
-    }
-    logger.info(
-        f"memblocks_store_semantic: dispatched background task for block {block_id}"
-    )
-    return json.dumps(result, indent=2)
+#     Use this tool specifically for factual, topic-retrievable knowledge:
+#       - Technical facts, code patterns, or implementation details
+#       - Domain knowledge or research findings from the conversation
+#       - Task-specific data (e.g. API keys discussed, endpoints found, configs)
+#       - Any fact best retrieved by topic keyword in a future session
 
 
-# --- Tool 5 — memblocks_store_to_core ---
-class StoreToCoreInput(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
-    fact: str = Field(
-        ...,
-        description="The fact or knowledge to add/update in core memory",
-        min_length=1,
-    )
+#     Input:
+#       - fact (str): Plain text fact or knowledge to store
+
+#     Returns a JSON object with:
+#       - status (str): "accepted" - storage is scheduled, not yet complete
+#       - message (str): Confirmation that storage was accepted
+#     """
+#     logger.info(f"memblocks_store_semantic: fact={params.fact[:80]!r}")
+#     client: MemBlocksClient = ctx.request_context.lifespan_context["client"]
+
+#     # Check for active block (synchronous validation)
+#     block_id, error = _active_block_id_or_error()
+#     if error:
+#         logger.warning(f"memblocks_store_semantic: no active block — {error}")
+#         raise ToolError(error)
+
+#     # Get the block (synchronous precondition)
+#     block = await client.get_block(block_id)
+#     if block is None:
+#         logger.warning(f"memblocks_store_semantic: block not found: {block_id}")
+#         raise ToolError(f"Block '{block_id}' not found.")
+
+#     # Wrap fact as messages for extraction
+#     messages = [{"role": "user", "content": params.fact}]
+
+#     # Dispatch background task using extract_and_store convenience method
+#     _dispatch_background_task(
+#         block._semantic.extract_and_store(messages),
+#         task_name=f"semantic_extract_and_store(block={block_id})",
+#         error_logger=logger,
+#     )
+
+#     # Return immediate accepted response
+#     result = {
+#         "status": "accepted",
+#         "message": "Semantic memory storage accepted - processing in background",
+#     }
+#     logger.info(
+#         f"memblocks_store_semantic: dispatched background task for block {block_id}"
+#     )
+#     return json.dumps(result, indent=2)
 
 
-@mcp.tool(
-    name="memblocks_store_to_core",
-    annotations={
-        "title": "Store to Core Memory",
-        "readOnlyHint": False,
-        "destructiveHint": False,
-        "idempotentHint": False,
-        "openWorldHint": False,
-    },
-)
-async def memblocks_store_to_core(params: StoreToCoreInput, ctx: Context) -> str:
-    """Store a fact or knowledge to core memory (always-on persona and human context).
+# # --- Tool 5 — memblocks_store_to_core ---
+# class StoreToCoreInput(BaseModel):
+#     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+#     fact: str = Field(
+#         ...,
+#         description="The fact or knowledge to add/update in core memory",
+#         min_length=1,
+#     )
 
-    PREFER `memblocks_store` OVER THIS TOOL:
-    Unless you specifically need core-only storage, call `memblocks_store`
-    instead — it stores to both semantic and core memory in one call and is the
-    recommended default.
 
-    PROACTIVE STORAGE — MANDATORY BEHAVIOR:
-    You MUST call a store tool proactively whenever a conversation turn contains
-    information worth remembering, WITHOUT waiting for the user to ask you to save it.
+# @mcp.tool(
+#     name="memblocks_store_to_core",
+#     annotations={
+#         "title": "Store to Core Memory",
+#         "readOnlyHint": False,
+#         "destructiveHint": False,
+#         "idempotentHint": False,
+#         "openWorldHint": False,
+#     },
+# )
+# async def memblocks_store_to_core(params: StoreToCoreInput, ctx: Context) -> str:
+#     """Store a fact or knowledge to core memory (always-on persona and human context).
 
-    Use this tool specifically for stable, identity-level facts about the user:
-      - The user's name, role, location, or organization
-      - Long-term goals or ongoing projects
-      - Persistent preferences about how the user wants you to behave
-      - Any fact that should always be present in every future conversation
+#     PREFER `memblocks_store` OVER THIS TOOL:
+#     Unless you specifically need core-only storage, call `memblocks_store`
+#     instead — it stores to both semantic and core memory in one call and is the
+#     recommended default.
 
-    Gets existing core memory, combines it with the new fact via LLM extraction,
-    and saves the updated core memory (persona + human sections).
+#     PROACTIVE STORAGE — MANDATORY BEHAVIOR:
+#     You MUST call a store tool proactively whenever a conversation turn contains
+#     information worth remembering, WITHOUT waiting for the user to ask you to save it.
 
-    Input:
-      - fact (str): Plain text fact or knowledge to add/update in core memory
+#     Use this tool specifically for stable, identity-level facts about the user:
+#       - The user's name, role, location, or organization
+#       - Long-term goals or ongoing projects
+#       - Persistent preferences about how the user wants you to behave
+#       - Any fact that should always be present in every future conversation
 
-    Returns a JSON object with:
-      - status (str): "accepted" - storage is scheduled, not yet complete
-      - message (str): Confirmation that storage was accepted
-    """
-    logger.info(f"memblocks_store_to_core: fact={params.fact[:80]!r}")
-    client: MemBlocksClient = ctx.request_context.lifespan_context["client"]
+#     Gets existing core memory, combines it with the new fact via LLM extraction,
+#     and saves the updated core memory (persona + human sections).
 
-    # Check for active block (synchronous validation)
-    block_id, error = _active_block_id_or_error()
-    if error:
-        logger.warning(f"memblocks_store_to_core: no active block — {error}")
-        raise ToolError(error)
+#     Input:
+#       - fact (str): Plain text fact or knowledge to add/update in core memory
 
-    # Get the block (synchronous precondition)
-    block = await client.get_block(block_id)
-    if block is None:
-        logger.warning(f"memblocks_store_to_core: block not found: {block_id}")
-        raise ToolError(f"Block '{block_id}' not found.")
+#     Returns a JSON object with:
+#       - status (str): "accepted" - storage is scheduled, not yet complete
+#       - message (str): Confirmation that storage was accepted
+#     """
+#     logger.info(f"memblocks_store_to_core: fact={params.fact[:80]!r}")
+#     client: MemBlocksClient = ctx.request_context.lifespan_context["client"]
 
-    # Determine core_block_id
-    core_block_id = block.core_memory_block_id or block.id
-    logger.debug(f"memblocks_store_to_core: core_block_id={core_block_id}")
+#     # Check for active block (synchronous validation)
+#     block_id, error = _active_block_id_or_error()
+#     if error:
+#         logger.warning(f"memblocks_store_to_core: no active block — {error}")
+#         raise ToolError(error)
 
-    # Wrap fact as messages for extraction
-    messages = [{"role": "user", "content": params.fact}]
+#     # Get the block (synchronous precondition)
+#     block = await client.get_block(block_id)
+#     if block is None:
+#         logger.warning(f"memblocks_store_to_core: block not found: {block_id}")
+#         raise ToolError(f"Block '{block_id}' not found.")
 
-    # Dispatch background task using update convenience method
-    _dispatch_background_task(
-        block._core.update(block_id=core_block_id, messages=messages),
-        task_name=f"core_update(block={core_block_id})",
-        error_logger=logger,
-    )
+#     # Determine core_block_id
+#     core_block_id = block.core_memory_block_id or block.id
+#     logger.debug(f"memblocks_store_to_core: core_block_id={core_block_id}")
 
-    # Return immediate accepted response
-    result = {
-        "status": "accepted",
-        "message": "Core memory update accepted - processing in background",
-    }
-    logger.info(
-        f"memblocks_store_to_core: dispatched background task for block {core_block_id}"
-    )
-    return json.dumps(result, indent=2)
+#     # Wrap fact as messages for extraction
+#     messages = [{"role": "user", "content": params.fact}]
+
+#     # Dispatch background task using update convenience method
+#     _dispatch_background_task(
+#         block._core.update(block_id=core_block_id, messages=messages),
+#         task_name=f"core_update(block={core_block_id})",
+#         error_logger=logger,
+#     )
+
+#     # Return immediate accepted response
+#     result = {
+#         "status": "accepted",
+#         "message": "Core memory update accepted - processing in background",
+#     }
+#     logger.info(
+#         f"memblocks_store_to_core: dispatched background task for block {core_block_id}"
+#     )
+#     return json.dumps(result, indent=2)
 
 
 # --- Tool 6 — memblocks_store (STOR-03) ---
@@ -700,90 +710,90 @@ async def memblocks_retrieve(params: RetrieveInput, ctx: Context) -> str:
 
 
 # --- Tool 8 — memblocks_retrieve_core (RETR-02) ---
-@mcp.tool(
-    name="memblocks_retrieve_core",
-    annotations={
-        "title": "Retrieve Core Memory Only",
-        "readOnlyHint": True,
-        "destructiveHint": False,
-        "idempotentHint": True,
-        "openWorldHint": False,
-    },
-)
-async def memblocks_retrieve_core(ctx: Context) -> str:
-    """Retrieve only the core memory from the active block.
+# @mcp.tool(
+#     name="memblocks_retrieve_core",
+#     annotations={
+#         "title": "Retrieve Core Memory Only",
+#         "readOnlyHint": True,
+#         "destructiveHint": False,
+#         "idempotentHint": True,
+#         "openWorldHint": False,
+#     },
+# )
+# async def memblocks_retrieve_core(ctx: Context) -> str:
+#     """Retrieve only the core memory from the active block.
 
-    Core memory contains persona (AI's perspective on the human) and stable
-    human facts. This returns the full core memory contents regardless of any
-    query - useful when you need the complete context about the human.
+#     Core memory contains persona (AI's perspective on the human) and stable
+#     human facts. This returns the full core memory contents regardless of any
+#     query - useful when you need the complete context about the human.
 
-    Returns a string containing the full core memory, formatted for LLM injection.
-    No input parameters needed.
-    """
-    logger.info("memblocks_retrieve_core: called")
-    client: MemBlocksClient = ctx.request_context.lifespan_context["client"]
+#     Returns a string containing the full core memory, formatted for LLM injection.
+#     No input parameters needed.
+#     """
+#     logger.info("memblocks_retrieve_core: called")
+#     client: MemBlocksClient = ctx.request_context.lifespan_context["client"]
 
-    # Check for active block
-    block_id, error = _active_block_id_or_error()
-    if error:
-        logger.warning(f"memblocks_retrieve_core: no active block — {error}")
-        raise ToolError(error)
+#     # Check for active block
+#     block_id, error = _active_block_id_or_error()
+#     if error:
+#         logger.warning(f"memblocks_retrieve_core: no active block — {error}")
+#         raise ToolError(error)
 
-    # Get the block
-    block = await client.get_block(block_id)
-    if block is None:
-        logger.warning(f"memblocks_retrieve_core: block not found: {block_id}")
-        raise ToolError(f"Block '{block_id}' not found.")
+#     # Get the block
+#     block = await client.get_block(block_id)
+#     if block is None:
+#         logger.warning(f"memblocks_retrieve_core: block not found: {block_id}")
+#         raise ToolError(f"Block '{block_id}' not found.")
 
-    # Core-only retrieval (no query needed)
-    result = await block.core_retrieve()
-    logger.info(f"memblocks_retrieve_core: done — core={result.core is not None}")
-    return result.to_prompt_string()
+#     # Core-only retrieval (no query needed)
+#     result = await block.core_retrieve()
+#     logger.info(f"memblocks_retrieve_core: done — core={result.core is not None}")
+#     return result.to_prompt_string()
 
 
 # --- Tool 9 — memblocks_retrieve_semantic (RETR-03) ---
-@mcp.tool(
-    name="memblocks_retrieve_semantic",
-    annotations={
-        "title": "Retrieve Semantic Memory Only",
-        "readOnlyHint": True,
-        "destructiveHint": False,
-        "idempotentHint": True,
-        "openWorldHint": False,
-    },
-)
-async def memblocks_retrieve_semantic(params: RetrieveInput, ctx: Context) -> str:
-    """Retrieve only semantic memories from the active block.
+# @mcp.tool(
+#     name="memblocks_retrieve_semantic",
+#     annotations={
+#         "title": "Retrieve Semantic Memory Only",
+#         "readOnlyHint": True,
+#         "destructiveHint": False,
+#         "idempotentHint": True,
+#         "openWorldHint": False,
+#     },
+# )
+# async def memblocks_retrieve_semantic(params: RetrieveInput, ctx: Context) -> str:
+#     """Retrieve only semantic memories from the active block.
 
-    Semantic memory contains facts, knowledge, and learned information retrieved
-    via vector search. This excludes core memory - useful when you only need
-    facts/knowledge without persona or human context.
+#     Semantic memory contains facts, knowledge, and learned information retrieved
+#     via vector search. This excludes core memory - useful when you only need
+#     facts/knowledge without persona or human context.
 
-    Input:
-      - query (str): Search query for semantic memory retrieval
+#     Input:
+#       - query (str): Search query for semantic memory retrieval
 
-    Returns a string containing only semantically relevant memories, formatted
-    for LLM injection.
-    """
-    logger.info(f"memblocks_retrieve_semantic: query={params.query[:80]!r}")
-    client: MemBlocksClient = ctx.request_context.lifespan_context["client"]
+#     Returns a string containing only semantically relevant memories, formatted
+#     for LLM injection.
+#     """
+#     logger.info(f"memblocks_retrieve_semantic: query={params.query[:80]!r}")
+#     client: MemBlocksClient = ctx.request_context.lifespan_context["client"]
 
-    # Check for active block
-    block_id, error = _active_block_id_or_error()
-    if error:
-        logger.warning(f"memblocks_retrieve_semantic: no active block — {error}")
-        raise ToolError(error)
+#     # Check for active block
+#     block_id, error = _active_block_id_or_error()
+#     if error:
+#         logger.warning(f"memblocks_retrieve_semantic: no active block — {error}")
+#         raise ToolError(error)
 
-    # Get the block
-    block = await client.get_block(block_id)
-    if block is None:
-        logger.warning(f"memblocks_retrieve_semantic: block not found: {block_id}")
-        raise ToolError(f"Block '{block_id}' not found.")
+#     # Get the block
+#     block = await client.get_block(block_id)
+#     if block is None:
+#         logger.warning(f"memblocks_retrieve_semantic: block not found: {block_id}")
+#         raise ToolError(f"Block '{block_id}' not found.")
 
-    # Semantic-only retrieval
-    result = await block.semantic_retrieve(params.query)
-    logger.info(f"memblocks_retrieve_semantic: done — semantic={len(result.semantic)}")
-    return result.to_prompt_string()
+#     # Semantic-only retrieval
+#     result = await block.semantic_retrieve(params.query)
+#     logger.info(f"memblocks_retrieve_semantic: done — semantic={len(result.semantic)}")
+#     return result.to_prompt_string()
 
 
 # --- Prompt 1 — memblocks_storage_policy ---
@@ -1015,7 +1025,67 @@ async def resource_tools_guide(ctx: Context) -> str:
 # --- Entry point ---
 def main() -> None:
     """Entry point for `memblocks-mcp` CLI command."""
-    mcp.run()  # stdio transport by default
+    parser = argparse.ArgumentParser(description="MemBlocks MCP Server")
+    parser.add_argument(
+        "--transport",
+        choices=["stdio", "sse", "streamable-http", "http"],
+        default="stdio",
+        help="Transport protocol (default: stdio)",
+    )
+    parser.add_argument("--host", default="0.0.0.0", help="Host to bind (default: 0.0.0.0)")
+    parser.add_argument("--port", type=int, default=8002, help="Port to bind (default: 8002)")
+    parser.add_argument(
+        "--path",
+        default="/mcp",
+        help="HTTP path for MCP endpoint (default: /mcp)",
+    )
+    parser.add_argument(
+        "--cors",
+        action="store_true",
+        help="Enable CORS for browser-based MCP clients",
+    )
+    parser.add_argument(
+        "--cors-origins",
+        default="",
+        help="Comma-separated list of allowed CORS origins (default: *)",
+    )
+    args = parser.parse_args()
+
+    transport = "streamable-http" if args.transport == "http" else args.transport
+
+    if transport == "stdio":
+        mcp.run()
+        return
+
+    if transport == "sse":
+        if args.cors or args.cors_origins:
+            logger.warning("CORS middleware is only available for streamable-http transport")
+        mcp.run(transport="sse", host=args.host, port=args.port)
+        return
+
+    cors_enabled = args.cors or bool(args.cors_origins)
+    middleware = None
+    if cors_enabled:
+        origins = ["*"]
+        if args.cors_origins.strip():
+            origins = [o.strip() for o in args.cors_origins.split(",") if o.strip()]
+        middleware = [
+            Middleware(
+                CORSMiddleware,
+                allow_origins=origins,
+                allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+                allow_headers=[
+                    "mcp-protocol-version",
+                    "mcp-session-id",
+                    "Authorization",
+                    "Content-Type",
+                ],
+                expose_headers=["mcp-session-id"],
+            )
+        ]
+
+    app = mcp.http_app(path=args.path, middleware=middleware)
+    uvicorn.run(app, host=args.host, port=args.port)
 
 
 if __name__ == "__main__":
