@@ -70,6 +70,7 @@ class LocomoRunner(BaseRunner):
 
             # --- Task 2: Multi-Strategy Context Retrieval (PIPE-02) ---
             # --- Task 1 (Plan 08-02): LLM QA with CoT (PIPE-03) ---
+            # --- Task 2 (Plan 08-02): Baseline Deferral (PIPE-04) ---
             for question in session.questions:
                 eval_result = {
                     "question": question.question,
@@ -81,8 +82,14 @@ class LocomoRunner(BaseRunner):
                     "retrieved_context_hybrid": None,
                     "answer_semantic": None,
                     "answer_core": None,
-                    "answer_hybrid": None
+                    "answer_hybrid": None,
+                    "baseline_status": "deferred_per_user_decision"
                 }
+                
+                # PIPE-04 Baseline Comparison: DEFERRED
+                # User Decision (08-CONTEXT.md): "Do not run baseline for now."
+                # Baseline would feed raw conversation history directly to LLM instead of MemBlocks context.
+                # This is skipped in initial implementation. To enable later, add a baseline strategy to retrieve_context().
 
                 # Only attempt retrieval if ingestion succeeded and we have a block client
                 if block_client is not None:

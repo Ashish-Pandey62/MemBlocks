@@ -267,7 +267,7 @@ Provide your final answer in 1-2 sentences."""
     assert eval_result["answer_semantic"] is not None
     assert eval_result["answer_core"] is not None
     assert eval_result["answer_hybrid"] is not None
-    
+     
     # Verify prompt contains <context> tags and CoT instruction
     call_args = runner._call_llm.call_args_list
     for call in call_args:
@@ -276,3 +276,36 @@ Provide your final answer in 1-2 sentences."""
         assert "</context>" in prompt
         assert "Think step by step" in prompt
         assert "Question:" in prompt
+
+
+# --- Task 2 (Plan 08-02): Baseline Deferral Tests (PIPE-04) ---
+def test_baseline_deferred(mock_memblocks, sample_session, mock_dataset):
+    """Test baseline comparison is properly deferred per user decision."""
+    # Create runner with mocked methods
+    config = RunnerConfig(name="locomo-test-runner")
+    runner = LocomoRunner(config=config, dataset=mock_dataset)
+    
+    # Mock _load_qa_template to return None (no LLM QA needed for this test)
+    runner._load_qa_template = MagicMock(return_value=None)
+    # Mock retrieve to return context
+    mock_memblocks["client_instance"].retrieve = MagicMock(
+        side_effect=lambda text, strategy, top_k: f"context-{strategy}"
+    )
+    
+    # Run pipeline
+    result = runner.run(output_dir=Path("/tmp/test-output"))
+    
+    # Verify baseline_status is set to deferred_per_user_decision
+    eval_result = result["details"][0]["evaluations"][0]
+    assert "baseline_status" in eval_result
+    assert eval_result["baseline_status"] == "deferred_per_user_decision"
+    
+    # Verify no baseline code is present (no baseline context or answer fields)
+    assert "baseline_context" not in eval_result
+    assert "baseline_answer" not in eval_result
+    
+    # Verify the deferral comment exists in locomo.py (check source file)
+    import inspect
+    source = inspect.getsource(runner._run_async)
+    assert "PIPE-04 Baseline Comparison: DEFERRED" in source
+    assert "Do not run baseline for now" in source
