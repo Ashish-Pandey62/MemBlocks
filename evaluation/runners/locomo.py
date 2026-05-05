@@ -24,9 +24,8 @@ class LocomoRunner(BaseRunner):
     async def _run_async(self, output_dir: Path) -> Dict[str, Any]:
         sessions = self.dataset.load()
         results = []
+        block_clients = {}  # Cache block clients per session
 
-        # For this skeleton, we're just going to log what would be evaluated
-        # This will be replaced with actual model calls later.
         for session in sessions:
             session_results = {
                 "session_id": session.session_id,
@@ -35,13 +34,39 @@ class LocomoRunner(BaseRunner):
                 "evaluations": []
             }
 
+            # --- Task 1: Session Ingestion (PIPE-01) ---
+            try:
+                # Create isolated MemBlocks block per session
+                block_id = f"locomo-session-{session.session_id}"
+                # Initialize MemBlocksClient with default config for this block
+                block_config = MemBlocksConfig(block_id=block_id)
+                block_client = MemBlocksClient(config=block_config)
+                block_clients[session.session_id] = block_client
+
+                # Ingest messages sequentially: add + flush per message
+                for message in session.messages:
+                    block_client.session.add(message)
+                    block_client.session.flush()
+
+                session_results["ingestion_status"] = "success"
+                session_results["block_id"] = block_id
+
+            except Exception as e:
+                # Handle MemBlocks connection/issues gracefully
+                session_results["ingestion_status"] = f"failed: {str(e)}"
+                session_results["block_id"] = None
+            # --- End Task 1 ---
+
             for question in session.questions:
-                # Stub out open-ended generation evaluation
+                # Stub out open-ended generation evaluation for now
                 eval_result = {
                     "question": question.question,
                     "expected_answer": question.answer,
                     "category": question.category,
-                    "status": "pending_implementation"
+                    "status": "pending_implementation",
+                    "retrieved_context_semantic": None,
+                    "retrieved_context_core": None,
+                    "retrieved_context_hybrid": None
                 }
                 session_results["evaluations"].append(eval_result)
             
