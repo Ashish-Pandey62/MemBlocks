@@ -24,8 +24,8 @@ class RunnerConfig(BaseModel):
 class RunConfig(BaseModel):
     """Configuration for a single evaluation run."""
     name: str = Field(..., description="Name of this run")
-    dataset: str = Field(..., description="Name of the dataset to use")
-    runner: str = Field(..., description="Name of the runner to use")
+    dataset: DatasetConfig = Field(..., description="Dataset configuration")
+    runner: RunnerConfig = Field(..., description="Runner configuration")
     metrics: List[str] = Field(default_factory=list, description="List of metric names to compute")
 
 

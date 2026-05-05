@@ -56,10 +56,22 @@ def run_evaluation(config_path: Path) -> None:
         logger.info(f"Output directory: {output_dir}")
 
         try:
-            # TODO: Instantiate and execute actual runner
-            # This is structural scaffolding - real runner execution
-            # will be implemented when concrete runners are created.
-            logger.info(f"Run '{run.name}' completed successfully")
+            # Get the dataset config
+            dataset_name = run.dataset.name
+            
+            # Instantiate dataset and runner
+            if dataset_name == "locomo":
+                from evaluation.datasets.locomo import LocomoDataset
+                from evaluation.runners.locomo import LocomoRunner
+                
+                dataset = LocomoDataset(run.dataset)
+                runner = LocomoRunner(run, dataset)
+            else:
+                logger.warning(f"Unknown dataset: {dataset_name}")
+                continue
+
+            results = runner.run(output_dir)
+            logger.info(f"Run '{run.name}' completed with {results.get('sessions_processed', 0)} sessions")
         except Exception as e:
             logger.error(f"Error executing run '{run.name}': {e}")
             # Continue to next run - do not halt the entire suite

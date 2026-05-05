@@ -1,7 +1,6 @@
 """LoCoMo dataset loader for evaluation framework."""
 
 import json
-import random
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
@@ -19,11 +18,15 @@ class LocomoMessage:
 
 @dataclass
 class LocomoQuestion:
-    """A multiple choice question from LoCoMo."""
+    """A question from LoCoMo.
+    
+    In the original dataset, questions are mostly open-ended generation tasks,
+    not multiple-choice (unless they have distractors explicitly provided).
+    """
     question: str
-    choices: List[str]
-    answer_idx: int
-    reasoning_type: str
+    answer: str
+    category: int
+    adversarial_answer: Optional[str] = None
 
 
 @dataclass
@@ -132,39 +135,11 @@ class LocomoDataset(BaseDataset):
             questions = []
             qa_list = sample.get("qa", [])
             for qa in qa_list:
-                answer = qa.get("answer", "")
-                
-                # Handle adversarial_answer whether it's missing, a string, or a list
-                adv_ans = qa.get("adversarial_answer")
-                if adv_ans is None:
-                    adversarial_answers = []
-                elif isinstance(adv_ans, list):
-                    adversarial_answers = adv_ans
-                else:
-                    adversarial_answers = [str(adv_ans)]
-                
-                # Build choices: correct answer + up to 9 adversarial answers
-                choices = [answer] + adversarial_answers[:9]
-                
-                # Skip questions that don't have multiple choices
-                if len(choices) < 2:
-                    continue
-                
-                # Deterministically shuffle
-                rng = random.Random(42)
-                rng.shuffle(choices)
-                
-                # Find answer index
-                try:
-                    answer_idx = choices.index(answer)
-                except ValueError:
-                    answer_idx = -1
-                
                 question = LocomoQuestion(
                     question=qa.get("question", ""),
-                    choices=choices,
-                    answer_idx=answer_idx,
-                    reasoning_type=qa.get("category", "")
+                    answer=qa.get("answer", ""),
+                    category=qa.get("category", 0),
+                    adversarial_answer=qa.get("adversarial_answer")
                 )
                 questions.append(question)
 
