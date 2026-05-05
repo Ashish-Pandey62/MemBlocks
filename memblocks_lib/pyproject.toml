@@ -12,6 +12,7 @@ dependencies = [
     "langchain-groq>=0.1",
     "langchain-core>=0.1",
     "langchain-openai>=0.1",
+    "langchain-ollama>=0.1.0",
     "httpx>=0.25",
     "requests>=2.32",
     "openinference-instrumentation-langchain>=0.1.4",

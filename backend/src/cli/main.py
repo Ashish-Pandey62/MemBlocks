@@ -170,7 +170,7 @@ def display_retrieval_summary(client: MemBlocksClient) -> None:
     method = getattr(last, "retrieval_method", "N/A")
 
     print(f"\n📊 Results: {num_results} memories")
-    print(f"♻️  Re-ranked: {'✅ Yes' if reranked else '❌ No'}")
+    print(f"♻️  Re-ranked: {' Yes' if reranked else ' No'}")
     print(f"🎯 Method: {method}")
 
     # Show a few memories
@@ -227,8 +227,8 @@ async def _run_cli() -> None:
                                  
         )
     except Exception as e:
-        print(f"❌ Error loading config: {e}")
-        print("\n💡 Make sure your .env file is in the project root")
+        print(f"Error loading config: {e}")
+        print("\n Make sure your .env file is in the project root")
         print("   Or run from the project root directory")
         return
 
@@ -238,19 +238,19 @@ async def _run_cli() -> None:
     print("=" * 70)
     print("\n🔧 Retrieval Configuration:")
     print(
-        f"  📢 Query Expansion: {'✅ Enabled' if config.retrieval_enable_query_expansion else '❌ Disabled'}"
+        f"  Query Expansion: {' Enabled' if config.retrieval_enable_query_expansion else ' Disabled'}"
     )
     print(f"     - Expansions per query: {config.retrieval_num_query_expansions}")
     print(
-        f"  💭 Hypothetical Paragraphs: {'✅ Enabled' if config.retrieval_enable_hypothetical_paragraphs else '❌ Disabled'}"
+        f"  Hypothetical Paragraphs: {' Enabled' if config.retrieval_enable_hypothetical_paragraphs else ' Disabled'}"
     )
     print(
         f"     - Paragraphs per query: {config.retrieval_num_hypothetical_paragraphs}"
     )
     print(
-        f"  ♻️  Re-ranking: {'✅ Enabled' if config.retrieval_enable_reranking else '❌ Disabled'}"
+        f"   Re-ranking: {' Enabled' if config.retrieval_enable_reranking else ' Disabled'}"
     )
-    print(f"  📊 Final top-k: {config.retrieval_final_top_k}")
+    print(f"  Final top-k: {config.retrieval_final_top_k}")
     print("=" * 70)
 
     client = MemBlocksClient(config)
@@ -278,7 +278,7 @@ async def _run_cli() -> None:
 
         if event_name == "on_pipeline_completed":
             asyncio.create_task(save_transparency_data(client))
-            print("\n✅ Memory pipeline completed.")
+            print("\n Memory pipeline completed.")
             
             # Show tokens for this specific run
             history = client.get_processing_history()
@@ -310,7 +310,7 @@ async def _run_cli() -> None:
         user_id = "default_user"
 
     user = await client.get_or_create_user(user_id)
-    print(f"✅ User: {user.get('user_id')}")
+    print(f" User: {user.get('user_id')}")
 
     # ---- block selection ----
     blocks = await client.get_user_blocks(user_id)
@@ -337,11 +337,11 @@ async def _run_cli() -> None:
         print("Creating block...")
         block = await client.create_block(user_id=user_id, name=name, description=desc)
 
-    print(f"\n✅ Using block: {block.name} ({block.id})")
+    print(f"\n Using block: {block.name} ({block.id})")
 
     # ---- session setup ----
     session = await client.create_session(user_id=user_id, block_id=block.id)
-    print(f"✅ Session: {session.id}")
+    print(f" Session: {session.id}")
 
     # ---- chat loop ----
     async def _persist_turn(session, user_msg, ai_response) -> None:
@@ -351,7 +351,7 @@ async def _run_cli() -> None:
             print(f"⚠️  Warning: failed to persist turn: {e}")
 
     print("\n" + "=" * 70)
-    print("💬 Chat with your assistant")
+    print(" Chat with your assistant")
     print("   Type 'quit' to exit")
     print("   Type 'logs' to view latest retrieval details")
     print("   Type 'tokens' to view cumulative LLM usage")
@@ -380,7 +380,7 @@ async def _run_cli() -> None:
                 continue
 
             try:
-                print("🔄 Retrieving memories...")
+                print(" Retrieving memories...")
                 start_time = asyncio.get_event_loop().time()
                 interaction_dt = datetime.utcnow()
 
@@ -414,7 +414,7 @@ async def _run_cli() -> None:
                 end_time = asyncio.get_event_loop().time()
                 logger.info(f"LLM response time: {end_time - start_time:.2f} seconds")
 
-                print(f"\n🤖 Assistant: {ai_response}\n")
+                print(f"\n Assistant: {ai_response}\n")
 
                 # Show tokens for this interaction
                 display_token_usage(client, since=interaction_dt)
@@ -423,23 +423,23 @@ async def _run_cli() -> None:
                 asyncio.create_task(_persist_turn(session, user_input, ai_response))
 
             except Exception as e:
-                print(f"❌ Error: {e}\n")
+                print(f" Error: {e}\n")
                 logger.exception("Chat loop error")
 
     except KeyboardInterrupt:
         pass
 
     finally:
-        print("\n💾 Flushing final transparency data...")
+        print("\n Flushing final transparency data...")
         await save_transparency_data(client)
         display_token_usage(client)
         print("🔌 Closing connections...")
         await client.close()
-        print("\n👋 Goodbye!\n")
-        print(f"📊 View detailed logs at: {LOG_DIR.absolute()}")
+        print("\n Goodbye!\n")
+        print(f" View detailed logs at: {LOG_DIR.absolute()}")
         print(f"   - retrieval_log.json - All retrieval details")
         print(f"   - memblocks.log - Debug logs")
-        print(f"\n💡 Run 'python verify_retrieval.py' to analyze retrievals\n")
+        print(f"\n Run 'python verify_retrieval.py' to analyze retrievals\n")
 
 
 def main() -> None:

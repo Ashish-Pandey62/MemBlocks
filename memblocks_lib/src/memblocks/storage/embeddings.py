@@ -37,8 +37,8 @@ class EmbeddingProvider:
                     and ``config.sparse_embeddings_model``.
         """
         self._model: str = config.embeddings_model
-        self._base_url: str = config.ollama_base_url
-        self._endpoint: str = f"{config.ollama_base_url}/api/embeddings"
+        self._base_url: str = config.ollama_base_url_embeddings
+        self._endpoint: str = f"{config.ollama_base_url_embeddings}/api/embeddings"
         self._sparse_model: str = config.sparse_embeddings_model
         self._sparse_embedder: Optional[SparseTextEmbedding] = None
 

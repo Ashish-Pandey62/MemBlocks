@@ -2,6 +2,7 @@
 
 Commands:
   whoami               Show the current user ID and where it comes from
+  set-user <id>        Set the user ID in state file
   list-blocks          List all blocks with name and ID
   set-block <id>       Activate a block
   get-block            Show the current active block
@@ -20,6 +21,7 @@ from mcp_server.state import (
     get_user_id,
     set_active_block_id,
     set_mcp_lock,
+    set_user_id,
 )
 
 
@@ -95,6 +97,13 @@ def cmd_whoami(args: argparse.Namespace) -> None:
     user_id, source = _resolve_user_id_with_source()
     print(f"User ID: {user_id}")
     print(f"Source:  {source}")
+    sys.exit(0)
+
+
+def cmd_set_user(args: argparse.Namespace) -> None:
+    """Handle set-user command — set the user ID in state file."""
+    set_user_id(args.user_id)
+    print(f"User ID set to: {args.user_id}")
     sys.exit(0)
 
 
@@ -186,6 +195,14 @@ def main() -> None:
         help="Show the current user ID and where it comes from",
     )
     p_whoami.set_defaults(func=cmd_whoami)
+
+    # set-user
+    p_set_user = subparsers.add_parser(
+        "set-user",
+        help="Set the user ID in state file",
+    )
+    p_set_user.add_argument("user_id", help="User ID to set")
+    p_set_user.set_defaults(func=cmd_set_user)
 
     # list-blocks
     p_list = subparsers.add_parser(

@@ -189,21 +189,33 @@ Core memory consists of two paragraphs (2–3 sentences each):
    - Special instructions for the assistant
 
 2. HUMAN: Stable, enduring facts about the user
-   - Name, location, occupation
-   - Key preferences and interests
-   - Important relationships
-   - Self-identifying attributes
+  Store only explicit, stable facts the user directly states about themselves:
 
-IMPORTANT GUIDELINES:
-- **PRESERVE EXISTING INFORMATION**: Always start with `old_core` as the absolute base.
-- **MINIMAL UPDATES**: Only update `old_core` if the conversation contains **new, explicit, and stable** facts.
-- **NO DELETIONS**: Never delete existing facts unless the user explicitly corrects them (e.g., "I moved to Berlin" -> update location).
-- **IGNORE TEMPORARY INFO**: Do not include daily tasks, specific project details (semantic memory), or fleeting moods.
-- **CONFLICT RESOLUTION**: If a new fact conflicts with an old one (e.g., location change), update the specific fact but keep all other surrounding details.
-- **CONCISENESS**: Keep paragraphs dense and information-rich. Limit HUMAN to 5–6 sentences and PERSONA to 2–3 sentences.
-- **NO RECURSIVE SUMMARIZATION**: Do not just summarize the conversation. Extract *attributes* and *facts*.
+  - Name or preferred name
+  - Pronouns (if stated)
+  - Profession, role, or student status (e.g., "software engineer," "studying biology")
+  - Country or region
+  - Timezone (if mentioned)
+  - Explicitly stated interests (only what they directly say, e.g., "I love jazz music")
 
----
+CRITICAL GUIDELINES:
+
+  - PRESERVE EXISTING INFORMATION: Always start with old_core as the absolute base.
+  - ONLY EXPLICIT FACTS: Store only what the user directly states. Never infer, assume, or interpret interests, preferences, or attributes.
+  - NO DELETIONS: Never remove existing facts unless the user explicitly corrects them (e.g., "Actually, I'm in Tokyo now" → update location only).
+  - NO EVENTS OR PROJECTS: Do not store current tasks, work projects, meetings, deadlines, or what they're "working on right now."
+  - NO TIMESTAMPS: Do not store dated events, "today," "this week," or time-specific activities.
+  - NO TEMPORARY STATES: Exclude moods, daily feelings, temporary conditions, or transient information.
+  - CONFLICT RESOLUTION: If a new fact conflicts with an old one, update that specific fact only—preserve all other details.
+  -EXTREME CONCISENESS: Keep HUMAN to 3–5 short, fact-dense sentences maximum.
+
+Core memory should NEVER include:
+
+  - Temporary information ("I'm tired today," "I have a headache")
+  - Sensitive data (passwords, financial info, addresses)
+  - Short-term tasks or to-dos
+  - Private health details (unless explicitly requested for storage)
+  - Current events or project specifics
 
 ### Examples
 
@@ -212,66 +224,52 @@ IMPORTANT GUIDELINES:
 Old Core Memory:
 {{
   "persona_content": "The AI communicates in a concise and formal manner. It prioritizes clarity and accuracy.",
-  "human_content": "User is named Sarah and lives in Kathmandu. She works as a product manager and enjoys hiking. Sarah values efficiency and clear communication."
+  "human_content": "User is named Sarah and lives in Kathmandu. She works as a product manager."
 }}
 
 Conversation:
-1. "Sarah recently moved to Lalitpur and started learning French."
-2. "She also prefers detailed explanations when discussing technical topics."
+1. "I just moved to Lalitpur last month."
+2. "I'm learning French now."
+3. "Oh, and I prefer detailed explanations when you're explaining technical stuff."
 
 Updated Core Memory Output:
 {{
   "persona_content": "The AI communicates in a concise and formal manner. It prioritizes clarity and accuracy, and provides detailed explanations when discussing technical topics.",
-  "human_content": "User is named Sarah and lives in Lalitpur. She works as a product manager and enjoys hiking. Sarah values efficiency, clear communication, and is learning French."
+  "human_content": "User is named Sarah and lives in Lalitpur. She works as a product manager and is learning French."
 }}
 
 ---
 
-**Example 2: No new facts (NOOP)**
+**Example 2: No new facts (No operation)**
 
 Old Core Memory:
 {{
   "persona_content": "The AI communicates in a friendly and casual style, prioritizing empathy and engagement.",
-  "human_content": "User is named Alex, lives in New York, and works as a software engineer. Alex enjoys photography and jazz music."
+  "human_content": "User is named Alex, lives in New York, and works as a software engineer."
 }}
 
 Conversation:
 1. "Hey, how's it going today?"
-2. "Did you check the weather?"
+2. "I'm working on a React project right now."
+3. "Did you check the weather?"
+4. "I'm feeling tired today."
+5. "I had a fight with a friend today"
 
 Updated Core Memory Output (unchanged):
 {{
   "persona_content": "The AI communicates in a friendly and casual style, prioritizing empathy and engagement.",
-  "human_content": "User is named Alex, lives in New York, and works as a software engineer. Alex enjoys photography and jazz music."
+  "human_content": "User is named Alex, lives in New York, and works as a software engineer."
 }}
+
+*Rationale: Current projects ("React project"), temporary states ("feeling tired"), and casual greetings contain no stable facts to store.*
 
 ---
-
-**Example 3: Conflict Resolution & Refinement**
-
-Old Core Memory:
-{{
-  "persona_content": "The AI is helpful and enthusiastic.",
-  "human_content": "User is John, a Python developer who uses VS Code. He is a beginner in AI."
-}}
-
-Conversation:
-1. "I've mostly switched to Rust now for my new backend projects."
-2. "I'm still using Python for data scripts though."
-3. "Stop being so enthusiastic, just give me the code."
-
-Updated Core Memory Output:
-{{
-  "persona_content": "The AI is helpful and direct, avoiding excessive enthusiasm. It focuses on providing code solutions efficiently.",
-  "human_content": "User is John, a developer who uses VS Code. He primarily uses Rust for backend projects but continues to use Python for data scripts. He is a beginner in AI."
-}}
 
 Output format:
 {{
   "persona_content": "2-3 sentence paragraph about assistant behavior",
-  "human_content": "5-6 sentence paragraph about user facts"
+  "human_content": "3-5 short, fact-dense sentences about user (name, pronouns, location, profession, timezone, explicitly stated interests only)"
 }}"""
-
 
 SUMMARY_SYSTEM_PROMPT = """
 You are a conversation summarizer.
@@ -452,214 +450,30 @@ When using context:
 - If semantic memories and resources overlap, cite the resource as primary source
 - Provide concise, informed responses based on available context"""
 
-
-QUERY_EXPANSION_PROMPT = """
-You are a query expansion specialist for semantic memory retrieval systems.
-
-Your task is to generate alternative query formulations that will improve retrieval coverage. Given a user's original query, you must generate {num_expansions} semantically related queries that:
-
-1. **Add related terms and concepts**: Include synonyms, hyponyms, hypernyms, and domain-specific terminology
-2. **Rephrase with different perspectives**: Reframe the question from different angles
-3. **Expand abbreviations and acronyms**: Make implicit terms explicit
-4. **Include contextual variations**: Consider different ways the information might be stored
-5. **Maintain semantic intent**: All expanded queries must preserve the core information need
-
-## Guidelines:
-
-- Each expanded query should be a complete, standalone query
-- Avoid trivial lexical variations (e.g., just changing word order)
-- Focus on semantic expansion that captures related concepts
-- Do NOT generate duplicate or near-duplicate queries
-- Keep queries concise and specific (1-2 sentences max)
-- Order by decreasing relevance to the original query
-
-## Output Format (JSON only):
-
-{{{{
-  "expanded_queries": [
-    "First expanded query with related terms",
-    "Second expanded query from different perspective",
-    "Third expanded query with domain-specific terminology"
-  ]
-}}}}
-
-## Examples:
-
-**Example 1:**
-Original Query: "Python machine learning projects"
-{{{{
-  "expanded_queries": [
-    "Python ML project implementations and examples",
-    "Machine learning applications developed using Python programming language",
-    "Python-based artificial intelligence and data science projects"
-  ]
-}}}}
-
-**Example 2:**
-Original Query: "database optimization techniques"
-{{{{
-  "expanded_queries": [
-    "SQL performance tuning and query optimization strategies",
-    "Database indexing, caching, and storage optimization methods",
-    "RDBMS and NoSQL database performance improvement approaches"
-  ]
-}}}}
-
-**Important**: Output ONLY valid JSON. No markdown, no extra text.
-"""
-
-
 QUERY_ENHANCEMENT_PROMPT = """
-You are a query enhancement specialist for semantic memory retrieval systems.
+Generate {num_expansions} expanded queries and {num_paragraphs} hypothetical answer paragraphs for semantic memory retrieval.
 
-Your task is to generate both **expanded queries** AND **hypothetical answer paragraphs** in a SINGLE operation to improve retrieval coverage and accuracy.
+**Expanded Queries**: Rephrase using synonyms, domain terms, different perspectives. Keep distinct and concise.
 
-## Task 1: Query Expansion
+**Hypothetical Paragraphs**: Write plausible answer-style text (2-4 sentences) with specific details and terminology, as if the information was already stored.
 
-Generate {num_expansions} semantically related query formulations that:
+Output JSON only with BOTH fields:
+{{{{
+  "expanded_queries": ["query1", "query2", ...],
+  "hypothetical_paragraphs": ["paragraph1", "paragraph2", ...]
+}}}}
 
-1. **Add related terms and concepts**: Include synonyms, hyponyms, hypernyms, and domain-specific terminology
-2. **Rephrase with different perspectives**: Reframe the question from different angles
-3. **Expand abbreviations and acronyms**: Make implicit terms explicit
-4. **Include contextual variations**: Consider different ways the information might be stored
-5. **Maintain semantic intent**: All expanded queries must preserve the core information need
-
-**Guidelines for Query Expansion:**
-- Each expanded query should be a complete, standalone query
-- Avoid trivial lexical variations (e.g., just changing word order)
-- Focus on semantic expansion that captures related concepts
-- Do NOT generate duplicate or near-duplicate queries
-- Keep queries concise and specific (1-2 sentences max)
-- Order by decreasing relevance to the original query
-
-## Task 2: Hypothetical Answer Paragraphs
-
-Generate {num_paragraphs} hypothetical answer paragraphs that could plausibly respond to the query. These use the HyDE (Hypothetical Document Embeddings) technique to improve retrieval by:
-
-- Bridging the embedding space gap between questions and answers
-- Capturing the semantic style and structure of actual stored memories
-- Including domain-specific terminology that appears in answers, not questions
-
-**Guidelines for Hypothetical Paragraphs:**
-1. **Write as if answering the query**: Generate realistic answer-style text, not questions
-2. **Be specific and detailed**: Include concrete facts, examples, and terminology
-3. **Vary the focus**: Each paragraph should emphasize different aspects of the query
-4. **Use natural language**: Write as a human would explain the topic
-5. **Include relevant entities**: Mention specific tools, technologies, people, or concepts
-6. **Keep it concise**: 2-4 sentences per paragraph
-7. **Be factually plausible**: Don't fabricate specific facts, but write in an answer style
-
-## Output Format (JSON only):
-
+Example:
+Query: "FastAPI authentication"
 {{{{
   "expanded_queries": [
-    "First expanded query with related terms",
-    "Second expanded query from different perspective",
-    "Third expanded query with domain-specific terminology"
+    "FastAPI OAuth2 JWT token authentication implementation",
+    "User login security dependencies in FastAPI"
   ],
   "hypothetical_paragraphs": [
-    "First hypothetical answer paragraph with specific details and terminology",
-    "Second hypothetical answer paragraph emphasizing different aspects"
+    "FastAPI implements authentication using OAuth2 with JWT tokens. The fastapi.security module provides OAuth2PasswordBearer for token validation, typically with a /token endpoint for credential verification."
   ]
 }}}}
-
-## Examples:
-
-**Example 1:**
-Original Query: "How does user authentication work in FastAPI?"
-{{{{
-  "expanded_queries": [
-    "FastAPI OAuth2 authentication implementation and JWT token handling",
-    "User login and authorization in FastAPI with security dependencies",
-    "FastAPI authentication middleware and password verification strategies"
-  ],
-  "hypothetical_paragraphs": [
-    "FastAPI implements user authentication through OAuth2 with Password flow and JWT tokens. The security utilities in fastapi.security module provide dependencies like OAuth2PasswordBearer for token validation. Typically, you create a /token endpoint that returns a JWT token after verifying credentials, and then use the token in subsequent requests via the Authorization header.",
-    "User authentication in FastAPI can be implemented using the OAuth2PasswordRequestForm for login and HTTPBearer for token verification. The authentication flow involves hashing passwords with libraries like bcrypt or passlib, generating JWT tokens with python-jose, and protecting routes with dependency injection using Depends() to verify the current user from the token."
-  ]
-}}}}
-
-**Example 2:**
-Original Query: "Python machine learning projects"
-{{{{
-  "expanded_queries": [
-    "Python ML project implementations and examples",
-    "Machine learning applications developed using Python programming language",
-    "Python-based artificial intelligence and data science projects"
-  ],
-  "hypothetical_paragraphs": [
-    "Python machine learning projects typically leverage libraries like scikit-learn for traditional ML algorithms, TensorFlow or PyTorch for deep learning, and pandas for data manipulation. Common projects include image classification with CNNs, natural language processing with transformers, recommendation systems, and time series forecasting.",
-    "Popular Python ML projects include sentiment analysis using NLTK or spaCy, computer vision applications with OpenCV and YOLO, predictive analytics with XGBoost or LightGBM, and reinforcement learning environments using Gym. These projects often integrate with Jupyter notebooks for experimentation and Flask or FastAPI for deployment."
-  ]
-}}}}
-
-**Example 3:**
-Original Query: "What are the benefits of using Docker?"
-{{{{
-  "expanded_queries": [
-    "Docker containerization advantages and use cases",
-    "Benefits of Docker for development and deployment workflows",
-    "Docker vs traditional virtualization - performance and efficiency benefits"
-  ],
-  "hypothetical_paragraphs": [
-    "Docker provides consistent development and production environments through containerization, eliminating the 'works on my machine' problem. Containers package applications with all their dependencies, making deployment faster and more reliable. Docker also enables efficient resource utilization since containers share the host OS kernel, using less memory than traditional virtual machines.",
-    "The main benefits of Docker include improved CI/CD workflows with faster build and deployment times, better scalability through orchestration tools like Kubernetes, and simplified dependency management. Docker Hub provides a vast ecosystem of pre-built images, and Docker Compose allows defining multi-container applications in a single YAML file, streamlining development and testing."
-  ]
-}}}}
-"""
-
-HYPOTHETICAL_PARAGRAPH_PROMPT = """
-You are a hypothetical answer generator for semantic memory retrieval systems.
-
-Your task is to generate {num_paragraphs} hypothetical answer paragraphs that could plausibly respond to the user's query. These paragraphs will be used to retrieve semantically similar memories from the knowledge base.
-
-## Purpose:
-
-Rather than searching with the question directly, we search with potential answers. This technique (called HyDE - Hypothetical Document Embeddings) improves retrieval by:
-- Bridging the embedding space gap between questions and answers
-- Capturing the semantic style and structure of actual stored memories
-- Including domain-specific terminology that appears in answers, not questions
-
-## Guidelines:
-
-1. **Write as if answering the query**: Generate realistic answer-style text, not questions
-2. **Be specific and detailed**: Include concrete facts, examples, and terminology
-3. **Vary the focus**: Each paragraph should emphasize different aspects of the query
-4. **Use natural language**: Write as a human would explain the topic
-5. **Include relevant entities**: Mention specific tools, technologies, people, or concepts
-6. **Keep it concise**: 2-4 sentences per paragraph
-7. **Be factually plausible**: Don't fabricate specific facts, but write in an answer style
-
-## Output Format (JSON only):
-
-{{{{
-  "paragraphs": [
-    "First hypothetical answer paragraph with specific details and terminology",
-    "Second hypothetical answer paragraph emphasizing different aspects"
-  ]
-}}}}
-
-## Examples:
-
-**Example 1:**
-Query: "How does user authentication work in FastAPI?"
-{{{{
-  "paragraphs": [
-    "FastAPI implements user authentication through OAuth2 with Password flow and JWT tokens. The security utilities in fastapi.security module provide dependencies like OAuth2PasswordBearer for token validation. Typically, you create a /token endpoint that returns a JWT token after verifying credentials, and then use the token in subsequent requests via the Authorization header.",
-    "User authentication in FastAPI can be implemented using the OAuth2PasswordRequestForm for login and HTTPBearer for token verification. The authentication flow involves hashing passwords with libraries like bcrypt or passlib, generating JWT tokens with python-jose, and protecting routes with dependency injection using Depends() to verify the current user from the token."
-  ]
-}}}}
-
-**Example 2:**
-Query: "What are the benefits of using Docker?"
-{{{{
-  "paragraphs": [
-    "Docker provides consistent development and production environments through containerization, eliminating the 'works on my machine' problem. Containers package applications with all their dependencies, making deployment faster and more reliable. Docker also enables efficient resource utilization since containers share the host OS kernel, using less memory than traditional virtual machines.",
-    "The main benefits of Docker include improved CI/CD workflows with faster build and deployment times, better scalability through orchestration tools like Kubernetes, and simplified dependency management. Docker Hub provides a vast ecosystem of pre-built images, and Docker Compose allows defining multi-container applications in a single YAML file, streamlining development and testing."
-  ]
-}}}}
-
-**Important**: Output ONLY valid JSON. No markdown, no extra text. Write as if you're providing answers, not asking questions.
 """
 
 
@@ -669,7 +483,5 @@ __all__ = [
     "SUMMARY_SYSTEM_PROMPT",
     "PS2_MEMORY_UPDATE_PROMPT",
     "ASSISTANT_BASE_PROMPT",
-    "QUERY_EXPANSION_PROMPT",
-    "HYPOTHETICAL_PARAGRAPH_PROMPT",
     "QUERY_ENHANCEMENT_PROMPT",
 ]

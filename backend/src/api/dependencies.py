@@ -1,6 +1,11 @@
 """FastAPI dependency injection — provides a shared MemBlocksClient instance."""
 
 from functools import lru_cache
+from typing import Optional
+
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 from memblocks import MemBlocksClient, MemBlocksConfig
 from memblocks.llm.task_settings import LLMSettings, LLMTaskSettings
 
@@ -44,4 +49,10 @@ def get_client() -> MemBlocksClient:
     return MemBlocksClient(config)
 
 
-__all__ = ["get_config", "get_client"]
+__all__ = [
+    "get_config",
+    "get_client",
+    "get_backend_config",
+    "BackendConfig",
+    "LLMConfig",
+]

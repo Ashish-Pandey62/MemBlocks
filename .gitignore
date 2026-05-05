@@ -27,6 +27,7 @@ build/
 # Runtime logs and output directories
 memblocks_cli_output/
 memblocks_mcp_logs/
+evaluation/runs/
 operation_log.json
 operation_summary.json
 retrieval_log.json

@@ -70,8 +70,9 @@ class MemBlocksConfig(BaseSettings):
 
     # Cohere re-ranker API
     cohere_api_key: Optional[str] = Field(
-        None, validation_alias="COHERE_API_KEY",
-        description="API key for the Cohere re-ranker service."
+        None,
+        validation_alias="COHERE_API_KEY",
+        description="API key for the Cohere re-ranker service.",
     )
     openrouter_fallback_models: Optional[str] = Field(
         None,
@@ -97,7 +98,7 @@ class MemBlocksConfig(BaseSettings):
         ]
 
     llm_model: str = Field(
-        "mmoonshotai/kimi-k2-instruct-0905",
+        "moonshotai/kimi-k2-instruct-0905",
         validation_alias="LLM_MODEL",
     )
     llm_convo_temperature: float = Field(0.7, validation_alias="LLM_CONVO_TEMPERATURE")
@@ -204,6 +205,17 @@ class MemBlocksConfig(BaseSettings):
     ollama_base_url: str = Field(
         "http://localhost:11434", validation_alias="OLLAMA_BASE_URL"
     )
+    ollama_base_url_embeddings: str = Field(
+        "http://localhost:11435", validation_alias="OLLAMA_BASE_URL_EMBEDDINGS"
+    )
+    ollama_keep_alive: str = Field(
+        "10m",
+        validation_alias="OLLAMA_KEEP_ALIVE",
+        description=(
+            "How long to keep Ollama models loaded in memory after last request. "
+            "Duration string: '10s', '5m', '1h', or '-1' for unlimited."
+        ),
+    )
     embeddings_model: str = Field(
         "nomic-embed-text", validation_alias="EMBEDDINGS_MODEL"
     )
@@ -287,9 +299,7 @@ class MemBlocksConfig(BaseSettings):
     clerk_publishable_key: Optional[str] = Field(
         None, validation_alias="CLERK_PUBLISHABLE_KEY"
     )
-    clerk_secret_key: Optional[str] = Field(
-        None, validation_alias="CLERK_SECRET_KEY"
-    )
+    clerk_secret_key: Optional[str] = Field(None, validation_alias="CLERK_SECRET_KEY")
 
     # -------------------------------------------------------------------------
     # Pydantic settings config

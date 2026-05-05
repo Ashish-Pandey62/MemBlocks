@@ -1,0 +1,74 @@
+================================================================================
+MemBlocks Evaluation
+================================================================================
+Dataset: evaluation\datasets\test_10_messages.json (10 messages)
+Methods: evaluation\methods\test_single_method.json (1 variants)
+Output:  evaluation\runs\run_20260329_013603
+Full-history baseline: enabled
+Turn delay (sec): 2.0
+Method delay (sec): 2.0
+Memory window limit: 20
+Keep last N: 10
+Session.add background: True
+================================================================================
+
+[RUN] memblocks_full
+OpenTelemetry Tracing Details
+|  Arize Project: memBlocks
+|  Span Processor: BatchSpanProcessor
+|  Collector Endpoint: otlp.arize.com
+|  Transport: gRPC
+|  Transport Headers: {'authorization': '****', 'api_key': '****', 'arize-space-id': '****', 'space_id': '****', 'arize-interface': '****'}
+|  
+|  Using a default SpanProcessor. `add_span_processor` will overwrite this default.
+|  
+|  `register` has set this TracerProvider as the global OpenTelemetry default.
+|  To disable this behavior, call `register` with `set_global_tracer_provider=False`.
+
+[PROGRESS] Turn 1/10 - memblocks_full
+Traceback (most recent call last):
+  File "C:\Users\Lenovo\Desktop\MemBlocks\evaluation\run_memblocks_evaluation.py", line 1746, in <module>
+    main()
+  File "C:\Users\Lenovo\Desktop\MemBlocks\evaluation\run_memblocks_evaluation.py", line 1742, in main
+    asyncio.run(run())
+  File "C:\Users\Lenovo\AppData\Roaming\uv\python\cpython-3.11.15-windows-x86_64-none\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\Lenovo\AppData\Roaming\uv\python\cpython-3.11.15-windows-x86_64-none\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Lenovo\AppData\Roaming\uv\python\cpython-3.11.15-windows-x86_64-none\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Lenovo\Desktop\MemBlocks\evaluation\run_memblocks_evaluation.py", line 1642, in run
+    report = await evaluate_method(
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Lenovo\Desktop\MemBlocks\evaluation\run_memblocks_evaluation.py", line 762, in evaluate_method
+    ai_response = await conversation_llm.chat(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Lenovo\Desktop\MemBlocks\memblocks_lib\src\memblocks\llm\groq_provider.py", line 338, in chat
+    response = await llm.ainvoke(messages)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Lenovo\Desktop\MemBlocks\.venv\Lib\site-packages\langchain_core\language_models\chat_models.py", line 425, in ainvoke
+    llm_result = await self.agenerate_prompt(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Lenovo\Desktop\MemBlocks\.venv\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1134, in agenerate_prompt
+    return await self.agenerate(
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Lenovo\Desktop\MemBlocks\.venv\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1092, in agenerate
+    raise exceptions[0]
+  File "C:\Users\Lenovo\Desktop\MemBlocks\.venv\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1361, in _agenerate_with_cache
+    result = await self._agenerate(
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Lenovo\Desktop\MemBlocks\.venv\Lib\site-packages\langchain_groq\chat_models.py", line 642, in _agenerate
+    response = await self.async_client.create(messages=message_dicts, **params)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Lenovo\Desktop\MemBlocks\.venv\Lib\site-packages\groq\resources\chat\completions.py", line 941, in create
+    return await self._post(
+           ^^^^^^^^^^^^^^^^^
+  File "C:\Users\Lenovo\Desktop\MemBlocks\.venv\Lib\site-packages\groq\_base_client.py", line 1762, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Lenovo\Desktop\MemBlocks\.venv\Lib\site-packages\groq\_base_client.py", line 1576, in request
+    raise self._make_status_error_from_response(err.response) from Nonemoonshotai
+groq.NotFoundError: Error code: 404 - {'error': {'message': 'The model `mmoonshotai/kimi-k2-instruct-0905` does not exist or you do not have access to it.', 'type': 'invalid_request_error', 'code': 'model_not_found'}}

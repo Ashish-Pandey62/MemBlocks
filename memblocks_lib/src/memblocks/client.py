@@ -134,10 +134,24 @@ def _build_provider(
             call_type=call_type,
         )
 
+    elif provider_name == "ollama":
+        from memblocks.llm.ollama_provider import OllamaLLMProvider
+
+        return OllamaLLMProvider.from_task_settings(
+            task_settings=task_settings,
+            base_url=config.ollama_base_url,
+            keep_alive=config.ollama_keep_alive,
+            arize_space_id=config.arize_space_id,
+            arize_api_key=config.arize_api_key,
+            arize_project_name=config.arize_project_name,
+            usage_tracker=usage_tracker,
+            call_type=call_type,
+        )
+
     else:
         raise ValueError(
             f"Unknown LLM provider: '{provider_name}'. "
-            "Supported providers: 'groq', 'gemini', 'openrouter'."
+            "Supported providers: 'groq', 'gemini', 'openrouter', 'ollama'."
         )
 
 

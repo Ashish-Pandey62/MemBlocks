@@ -24,8 +24,6 @@ from memblocks.models.units import (
 from memblocks.prompts import (
     PS1_SEMANTIC_PROMPT,
     PS2_MEMORY_UPDATE_PROMPT,
-    QUERY_EXPANSION_PROMPT,
-    HYPOTHETICAL_PARAGRAPH_PROMPT,
     QUERY_ENHANCEMENT_PROMPT,
 )
 from memblocks.logger import get_logger
