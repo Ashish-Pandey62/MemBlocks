@@ -221,3 +221,58 @@ class TestRetrieval:
         # Check error is recorded
         eval_result = result["details"][0]["evaluations"][0]
         assert "retrieval_failed" in eval_result["status"]
+
+
+# --- Task 1 (Plan 08-02): LLM QA with CoT Tests (PIPE-03) ---
+def test_qa(mock_memblocks, sample_session, mock_dataset):
+    """Test LLM QA with CoT prompt and answer storage per strategy."""
+    # Mock QA template loading
+    sample_template = """Answer the user's question using the provided context.
+
+Think step by step before providing your final answer.
+
+<context>{retrieved_context}</context>
+
+Question: {question_text}
+
+Provide your final answer in 1-2 sentences."""
+    
+    # Create runner with mocked methods
+    config = RunnerConfig(name="locomo-test-runner", model="test-model")
+    runner = LocomoRunner(config=config, dataset=mock_dataset)
+    
+    # Mock _load_qa_template to return sample template
+    runner._load_qa_template = MagicMock(return_value=sample_template)
+    # Mock _call_llm to return stub answers
+    runner._call_llm = MagicMock(side_effect=lambda prompt: f"Answer for prompt: {prompt[:50]}...")
+    # Mock retrieve to return context per strategy
+    mock_memblocks["client_instance"].retrieve = MagicMock(
+        side_effect=lambda text, strategy, top_k: f"context-{strategy}"
+    )
+    
+    # Run pipeline
+    result = runner.run(output_dir=Path("/tmp/test-output"))
+    
+    # Verify QA template was loaded
+    runner._load_qa_template.assert_called_once()
+    
+    # Verify _call_llm was called 3 times (once per strategy)
+    assert runner._call_llm.call_count == 3
+    
+    # Verify answers are stored per strategy in eval_result
+    eval_result = result["details"][0]["evaluations"][0]
+    assert "answer_semantic" in eval_result
+    assert "answer_core" in eval_result
+    assert "answer_hybrid" in eval_result
+    assert eval_result["answer_semantic"] is not None
+    assert eval_result["answer_core"] is not None
+    assert eval_result["answer_hybrid"] is not None
+    
+    # Verify prompt contains <context> tags and CoT instruction
+    call_args = runner._call_llm.call_args_list
+    for call in call_args:
+        prompt = call[0][0]
+        assert "<context>" in prompt
+        assert "</context>" in prompt
+        assert "Think step by step" in prompt
+        assert "Question:" in prompt
