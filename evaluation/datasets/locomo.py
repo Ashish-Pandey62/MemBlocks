@@ -1,6 +1,7 @@
 """LoCoMo dataset loader for evaluation framework."""
 
 import json
+import random
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
@@ -52,9 +53,8 @@ class LocomoDataset(BaseDataset):
             data = json.loads(response.read().decode("utf-8"))
         return data
 
-    def _load_from_local(self, base_path: Path) -> List[dict]:
+    def _load_from_local(self, dataset_path: Path) -> List[dict]:
         """Load dataset from local file."""
-        dataset_path = base_path / "locomo10.json"
         if not dataset_path.exists():
             raise FileNotFoundError(f"Dataset not found at {dataset_path}")
 
@@ -132,10 +132,38 @@ class LocomoDataset(BaseDataset):
             questions = []
             qa_list = sample.get("qa", [])
             for qa in qa_list:
+                answer = qa.get("answer", "")
+                
+                # Handle adversarial_answer whether it's missing, a string, or a list
+                adv_ans = qa.get("adversarial_answer")
+                if adv_ans is None:
+                    adversarial_answers = []
+                elif isinstance(adv_ans, list):
+                    adversarial_answers = adv_ans
+                else:
+                    adversarial_answers = [str(adv_ans)]
+                
+                # Build choices: correct answer + up to 9 adversarial answers
+                choices = [answer] + adversarial_answers[:9]
+                
+                # Skip questions that don't have multiple choices
+                if len(choices) < 2:
+                    continue
+                
+                # Deterministically shuffle
+                rng = random.Random(42)
+                rng.shuffle(choices)
+                
+                # Find answer index
+                try:
+                    answer_idx = choices.index(answer)
+                except ValueError:
+                    answer_idx = -1
+                
                 question = LocomoQuestion(
                     question=qa.get("question", ""),
-                    choices=[],
-                    answer_idx=-1,
+                    choices=choices,
+                    answer_idx=answer_idx,
                     reasoning_type=qa.get("category", "")
                 )
                 questions.append(question)
