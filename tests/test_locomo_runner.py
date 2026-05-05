@@ -122,9 +122,14 @@ class TestIngestion:
         assert detail["block_id"] is None
 
 
-# --- Plan-required test_ingestion() function ---
-def test_ingestion(mock_memblocks, sample_session, mock_dataset):
-    """Plan-specified test_ingestion() function for Task 1 verification."""
+# --- Plan-required test_retrieval() function ---
+def test_retrieval(mock_memblocks, sample_session, mock_dataset):
+    """Plan-specified test_retrieval() function for Task 2 verification."""
+    # Mock retrieve method to return dummy context
+    mock_memblocks["client_instance"].retrieve = MagicMock(
+        side_effect=lambda text, strategy, top_k: f"context-{strategy}"
+    )
+    
     # Create runner with proper config
     config = RunnerConfig(name="locomo-test-runner")
     runner = LocomoRunner(config=config, dataset=mock_dataset)
@@ -132,20 +137,87 @@ def test_ingestion(mock_memblocks, sample_session, mock_dataset):
     # Run the pipeline
     result = runner.run(output_dir=Path("/tmp/test-output"))
     
-    # Verify one block created per session
-    assert mock_memblocks["client"].call_count == 1
-    block_id_call = mock_memblocks["config"].call_args[1].get("block_id")
-    assert block_id_call == f"locomo-session-{sample_session.session_id}"
-    
-    # Verify session.add() called for each message
-    assert mock_memblocks["session"].add.call_count == len(sample_session.messages)
-    expected_calls = [call(msg) for msg in sample_session.messages]
-    mock_memblocks["session"].add.assert_has_calls(expected_calls, any_order=False)
-    
-    # Verify session.flush() called after each message
-    assert mock_memblocks["session"].flush.call_count == len(sample_session.messages)
-    
-    # Verify ingestion status recorded
+    # Check that retrieval was attempted (ingestion succeeds)
     detail = result["details"][0]
     assert detail["ingestion_status"] == "success"
-    assert detail["block_id"] == f"locomo-session-{sample_session.session_id}"
+    
+    # Check that all 3 strategies were called for each question
+    question = sample_session.questions[0]
+    expected_retrieve_calls = [
+        call(question.question, strategy="semantic", top_k=5),
+        call(question.question, strategy="core", top_k=5),
+        call(question.question, strategy="hybrid", top_k=5)
+    ]
+    mock_memblocks["client_instance"].retrieve.assert_has_calls(expected_retrieve_calls, any_order=True)
+    
+    # Check that retrieved context is stored in eval_result
+    eval_result = detail["evaluations"][0]
+    assert eval_result["retrieved_context_semantic"] == "context-semantic"
+    assert eval_result["retrieved_context_core"] == "context-core"
+    assert eval_result["retrieved_context_hybrid"] == "context-hybrid"
+    assert eval_result["status"] == "retrieval_success"
+
+
+# --- Task 2: Retrieval Tests ---
+class TestRetrieval:
+    """Tests for multi-strategy context retrieval logic (PIPE-02)."""
+    
+    def test_three_strategies_called_per_question(self, runner, mock_memblocks, sample_session):
+        """Verify all 3 retrieval strategies are called for each question."""
+        # Mock retrieve method
+        mock_memblocks["client_instance"].retrieve = MagicMock(
+            side_effect=lambda text, strategy, top_k: f"context-{strategy}"
+        )
+        
+        # Run pipeline
+        result = runner.run(output_dir=Path("/tmp/test-output"))
+        
+        # Check 3 calls per question (one per strategy)
+        question_count = len(sample_session.questions)
+        assert mock_memblocks["client_instance"].retrieve.call_count == question_count * 3
+    
+    def test_retrieved_context_stored_in_eval_result(self, runner, mock_memblocks, sample_session):
+        """Verify retrieved context is stored in eval_result per strategy."""
+        # Mock retrieve method
+        mock_memblocks["client_instance"].retrieve = MagicMock(
+            side_effect=lambda text, strategy, top_k: f"ctx-{strategy}"
+        )
+        
+        # Run pipeline
+        result = runner.run(output_dir=Path("/tmp/test-output"))
+        
+        # Check eval_result fields
+        eval_result = result["details"][0]["evaluations"][0]
+        assert eval_result["retrieved_context_semantic"] == "ctx-semantic"
+        assert eval_result["retrieved_context_core"] == "ctx-core"
+        assert eval_result["retrieved_context_hybrid"] == "ctx-hybrid"
+    
+    def test_retrieval_skipped_if_no_block_client(self, mock_memblocks, sample_session, mock_dataset):
+        """Verify retrieval is skipped if ingestion failed (no block client)."""
+        # Make MemBlocksClient raise error during ingestion
+        mock_memblocks["client"].side_effect = Exception("Ingestion failed")
+        
+        # Create runner
+        config = RunnerConfig(name="locomo-test-runner")
+        runner = LocomoRunner(config=config, dataset=mock_dataset)
+        
+        # Run pipeline
+        result = runner.run(output_dir=Path("/tmp/test-output"))
+        
+        # Check retrieval was skipped
+        eval_result = result["details"][0]["evaluations"][0]
+        assert eval_result["status"] == "skipped_no_block_client"
+        # Ensure retrieve was not called
+        mock_memblocks["client_instance"].retrieve.assert_not_called()
+    
+    def test_retrieval_error_handling(self, runner, mock_memblocks, sample_session):
+        """Verify retrieval errors are caught and logged."""
+        # Make retrieve raise an exception
+        mock_memblocks["client_instance"].retrieve.side_effect = Exception("Retrieval failed")
+        
+        # Run pipeline
+        result = runner.run(output_dir=Path("/tmp/test-output"))
+        
+        # Check error is recorded
+        eval_result = result["details"][0]["evaluations"][0]
+        assert "retrieval_failed" in eval_result["status"]
