@@ -3,6 +3,7 @@
 import pytest
 from evaluation.core.config import DatasetConfig
 from evaluation.datasets import LocomoDataset
+from evaluation.datasets.locomo import LocomoMessage, LocomoQuestion, LocomoSession
 
 
 def test_locomo_imports():
@@ -31,3 +32,16 @@ def test_locomo_dataclasses():
     assert LocomoQuestion is not None
     assert LocomoSession is not None
     assert LocomoDataset is not None
+
+
+def test_basic_instantiation_with_config():
+    """Test basic instantiation with various config options."""
+    # Test with max_sessions
+    config = DatasetConfig(name="locomo", max_sessions=5)
+    dataset = LocomoDataset(config)
+    assert dataset.config.max_sessions == 5
+
+    # Test with max_questions_per_session
+    config = DatasetConfig(name="locomo", max_questions_per_session=10)
+    dataset = LocomoDataset(config)
+    assert dataset.config.max_questions_per_session == 10
