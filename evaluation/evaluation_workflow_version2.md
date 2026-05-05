@@ -250,6 +250,8 @@ For each normalized LOCOMO conversation:
 2. Create one block:
    - `block = await client.create_block(user_id=user_id, name=f"LOCOMO {conversation_id}")`
 3. Create one session:
+   - per session window must be large becuase only that makes sense.
+   - fallback resume if context window hits  
    - `session = await client.create_session(user_id=user_id, block_id=block.id)`
 4. Replay messages as turns:
    - pair each `user` message with the next `assistant` message where possible
