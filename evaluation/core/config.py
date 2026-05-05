@@ -11,6 +11,8 @@ class DatasetConfig(BaseModel):
     """Configuration for a dataset."""
     name: str = Field(..., description="Name of the dataset")
     path: Optional[str] = Field(None, description="Path to the dataset files")
+    max_sessions: Optional[int] = Field(None, description="Maximum number of sessions to load")
+    max_questions_per_session: Optional[int] = Field(None, description="Maximum questions per session")
 
 
 class RunnerConfig(BaseModel):
