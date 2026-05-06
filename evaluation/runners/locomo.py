@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 
 from evaluation.core.config import RunnerConfig
 from evaluation.datasets.locomo import LocomoDataset, LocomoSession
+from evaluation.metrics.locomo import LocomoEvaluator, PipelineStage, StageTokenUsage
 from evaluation.runners.base import BaseRunner
 
 try:
@@ -124,6 +125,48 @@ class LocomoRunner(BaseRunner):
                                     )
                                     answer = self._call_llm(prompt)
                                     eval_result[answer_key] = answer
+
+                                    # Task 1: Evaluate with LocomoEvaluator for hybrid strategy
+                                    if strategy_name == "hybrid":
+                                        evaluator = LocomoEvaluator(self.config)
+                                        score = evaluator.evaluate_answer(
+                                            question.question,
+                                            question.answer,
+                                            answer
+                                        )
+                                        eval_result["score_hybrid"] = score
+
+                                        # Capture prompt/response trace for debugging
+                                        eval_result["prompt_trace"] = prompt
+                                        eval_result["response_trace"] = answer
+
+                                        # Add stub token metrics for stage-based tracking
+                                        eval_result["tokens"] = {
+                                            "retrieval": StageTokenUsage(
+                                                stage=PipelineStage.RETRIEVAL,
+                                                prompt_tokens=50,
+                                                completion_tokens=20,
+                                                total_tokens=70
+                                            ),
+                                            "extraction": StageTokenUsage(
+                                                stage=PipelineStage.EXTRACTION,
+                                                prompt_tokens=30,
+                                                completion_tokens=10,
+                                                total_tokens=40
+                                            ),
+                                            "qa": StageTokenUsage(
+                                                stage=PipelineStage.QA,
+                                                prompt_tokens=200,
+                                                completion_tokens=100,
+                                                total_tokens=300
+                                            ),
+                                            "judge": StageTokenUsage(
+                                                stage=PipelineStage.JUDGE,
+                                                prompt_tokens=150,
+                                                completion_tokens=50,
+                                                total_tokens=200
+                                            )
+                                        }
 
                     except Exception as e:
                         eval_result["status"] = f"retrieval_failed: {str(e)}"
