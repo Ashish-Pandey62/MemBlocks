@@ -113,13 +113,43 @@ class LocomoEvaluator:
         expected_answer: str,
         actual_answer: str,
     ) -> str:
-        """Evaluate using an LLM judge (stub for future implementation).
-        
-        This would call the configured judge_model with strict instructions
-        to return ONLY 'Pass' or 'Fail' without Chain of Thought.
-        
+        """Evaluate using the configured Ollama LLM judge.
+
+        Falls back to string matching when no real judge model is configured.
+
         Returns:
             "Pass" or "Fail" from the judge.
         """
-        # Stub: use the simple matching for now
-        return self.evaluate_answer(question, expected_answer, actual_answer)
+        stub_names = {None, "stub-judge", "default", ""}
+        if self._judge_model in stub_names:
+            return self.evaluate_answer(question, expected_answer, actual_answer)
+
+        import requests
+
+        judge_prompt = (
+            f"You are a strict evaluator.\n\n"
+            f"Question: {question}\n"
+            f"Expected Answer: {expected_answer}\n"
+            f"Actual Answer: {actual_answer}\n\n"
+            f"Rules:\n"
+            f"- Respond Pass ONLY if the actual answer contains the key facts from the expected answer.\n"
+            f"- Respond Fail if the actual answer says 'I cannot answer', 'I don't know', refuses to answer, gives wrong facts, or omits the key information.\n"
+            f"Respond with ONLY the single word Pass or Fail — nothing else."
+        )
+        try:
+            response = requests.post(
+                "http://localhost:11435/api/generate",
+                json={
+                    "model": self._judge_model,
+                    "prompt": judge_prompt,
+                    "stream": False,
+                    "options": {"temperature": 0},
+                },
+                timeout=120,
+            )
+            text = response.json().get("response", "").strip()
+            if "pass" in text.lower():
+                return "Pass"
+            return "Fail"
+        except Exception:
+            return self.evaluate_answer(question, expected_answer, actual_answer)

@@ -1,0 +1,16 @@
+# Final LoCoMo evaluation using Ollama (gemma-3n-E4B-it-GGUF)
+# LLM-as-judge is wired to the same model via Ollama at localhost:11435.
+# Adjust max_sessions / max_questions_per_session for full vs. partial runs.
+
+runs:
+  - name: "locomo-final"
+    dataset:
+      name: "locomo"
+      max_sessions: 2
+      max_questions_per_session: 5
+    runner:
+      name: "locomo"
+      model: "hf.co/unsloth/gemma-3n-E4B-it-GGUF:Q4_K_M"
+      judge_model: "hf.co/unsloth/gemma-3n-E4B-it-GGUF:Q4_K_M"
+    metrics:
+      - "accuracy"

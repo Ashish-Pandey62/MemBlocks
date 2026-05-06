@@ -40,10 +40,18 @@ class _InMemoryBlockClient:
         self.session = _InMemorySession()
 
     def retrieve(self, question_text: str, strategy: str = "hybrid", top_k: int = 5) -> str:
-        del top_k
-        context_lines = [getattr(message, "content", str(message)) for message in self.session.messages]
-        context = "\n".join(context_lines)
-        return f"[{strategy} retrieval for: {question_text}]\n{context}"
+        # Simple keyword match: score each message by overlap with query terms,
+        # then return top_k highest-scoring messages.
+        query_terms = set(question_text.lower().split())
+        scored = []
+        for msg in self.session.messages:
+            text = getattr(msg, "content", str(msg))
+            score = sum(1 for t in query_terms if t in text.lower())
+            scored.append((score, text))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        top_lines = [text for _, text in scored[:top_k]]
+        context = "\n".join(top_lines)
+        return f"[{strategy} retrieval — top {top_k} of {len(self.session.messages)} messages]\n{context}"
 
 
 class LocomoRunner(BaseRunner):
@@ -104,9 +112,13 @@ class LocomoRunner(BaseRunner):
                 session_results["block_id"] = block_id
 
             except Exception as e:
-                # Handle MemBlocks connection/issues gracefully
+                # Handle MemBlocks connection/issues gracefully; fall back to
+                # in-memory client so retrieval can still proceed.
                 session_results["ingestion_status"] = f"failed: {str(e)}"
                 session_results["block_id"] = None
+                block_client = _InMemoryBlockClient()
+                for message in session.messages:
+                    block_client.session.add(message)
             # --- End Task 1 ---
 
             # --- Task 2: Multi-Strategy Context Retrieval (PIPE-02) ---
@@ -171,7 +183,7 @@ class LocomoRunner(BaseRunner):
                                     # Task 1: Evaluate with LocomoEvaluator for hybrid strategy
                                     if strategy_name == "hybrid":
                                         evaluator = LocomoEvaluator(self.config)
-                                        score = evaluator.evaluate_answer(
+                                        score = evaluator.evaluate_with_judge(
                                             question.question,
                                             question.answer,
                                             answer
@@ -264,21 +276,28 @@ class LocomoRunner(BaseRunner):
         return prompt
 
     def _call_llm(self, prompt: str) -> str:
-        """Call LLM with filled prompt and return response."""
-        # Use model from config if available, otherwise default
-        model = self.config.model if self.config and self.config.model else "default"
-        # Stub for LLM client - in production, this would call an actual LLM API
-        # For testing, this method is mocked
+        """Call the configured Ollama model and return its response."""
+        import requests
+
+        model = self.config.model if self.config and self.config.model else None
+        stub_names = {None, "stub-model", "default", ""}
+        if model in stub_names:
+            return f"Stub answer for prompt: {prompt[:50]}..."
+
         try:
-            # Try to use memblocks LLM client if available
-            if MemBlocksClient is not None:
-                # Assume MemBlocksClient has an llm attribute or similar
-                # This is a placeholder - adjust based on actual memblocks LLM integration
-                return f"LLM answer using {model} for prompt: {prompt[:50]}..."
-        except Exception:
-            pass
-        # Fallback stub for testing
-        return f"Stub answer for prompt: {prompt[:50]}..."
+            response = requests.post(
+                "http://localhost:11435/api/generate",
+                json={
+                    "model": model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"temperature": 0},
+                },
+                timeout=180,
+            )
+            return response.json().get("response", "").strip()
+        except Exception as e:
+            return f"LLM call failed: {e}"
 
     def _retrieve_context(self, question_text: str, block_client: "MemBlocksClient", strategy: str) -> Any:
         """Retrieve context from MemBlocks using specified strategy.

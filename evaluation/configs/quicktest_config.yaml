@@ -1,0 +1,13 @@
+# Quick sanity test — 1 session x 2 questions (~1 minute total)
+runs:
+  - name: "locomo-quicktest"
+    dataset:
+      name: "locomo"
+      max_sessions: 1
+      max_questions_per_session: 2
+    runner:
+      name: "locomo"
+      model: "hf.co/unsloth/gemma-3n-E4B-it-GGUF:Q4_K_M"
+      judge_model: "hf.co/unsloth/gemma-3n-E4B-it-GGUF:Q4_K_M"
+    metrics:
+      - "accuracy"
