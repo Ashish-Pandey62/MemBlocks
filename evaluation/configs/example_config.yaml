@@ -1,25 +1,16 @@
-# Example evaluation configuration
-# This demonstrates a multi-run configuration for evaluating different strategies
+# Example LoCoMo evaluation configuration
+# Keep the defaults small for affordable smoke runs. Increase these limits for
+# full evaluation runs.
 
 runs:
-  - name: "baseline-semantic"
-    dataset: "locomo-mc10"
-    runner: "semantic-retriever"
+  - name: "locomo-smoke"
+    dataset:
+      name: "locomo"
+      max_sessions: 1
+      max_questions_per_session: 2
+    runner:
+      name: "locomo"
+      model: "stub-model"
+      judge_model: "stub-judge"
     metrics:
       - "accuracy"
-      - "latency"
-
-  - name: "baseline-core"
-    dataset: "locomo-mc10"
-    runner: "core-retriever"
-    metrics:
-      - "accuracy"
-      - "latency"
-
-  - name: "hybrid-retrieval"
-    dataset: "locomo-mc10"
-    runner: "hybrid-retriever"
-    metrics:
-      - "accuracy"
-      - "latency"
-      - "context-usage"

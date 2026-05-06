@@ -67,7 +67,7 @@ class Reporter:
                     "session_id": session_id,
                     "question": eval_entry.get("question", ""),
                     "expected_answer": eval_entry.get("expected_answer", ""),
-                    "actual_answer": eval_entry.get("actual_answer", ""),
+                    "actual_answer": eval_entry.get("actual_answer", eval_entry.get("answer_hybrid", "")),
                     "score": eval_entry.get("score_hybrid", ""),
                     "category": eval_entry.get("category", ""),
                 }

@@ -97,8 +97,13 @@ class LocomoEvaluator:
         Returns:
             "Pass" if the answer is factually correct, "Fail" otherwise.
         """
-        # Strict matching: pass if actual contains expected or matches exactly
-        if expected_answer.lower() in actual_answer.lower() or actual_answer.lower() in expected_answer.lower():
+        expected = str(expected_answer or "").strip().lower()
+        actual = str(actual_answer or "").strip().lower()
+        if not expected or not actual:
+            return "Fail"
+
+        # Strict matching: pass if actual contains expected or matches exactly.
+        if expected in actual or actual in expected:
             return "Pass"
         return "Fail"
     
