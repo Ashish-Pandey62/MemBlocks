@@ -130,7 +130,7 @@ class Reporter:
         total_questions = metrics.get("total_questions", 0)
         total_passes = metrics.get("total_passes", 0)
         
-        print("\n📊 Overall Statistics:")
+        print("\n[Overall Statistics]")
         print(f"  Questions Evaluated: {total_questions}")
         print(f"  Passes: {total_passes}")
         print(f"  Fails: {total_questions - total_passes}")
@@ -139,24 +139,26 @@ class Reporter:
         # By Reasoning Type (Category)
         accuracy_by_category = metrics.get("accuracy_by_category", {})
         if accuracy_by_category:
-            print("\n📈 By Reasoning Type:")
+            print("\n[By Reasoning Type]")
             print("-" * 40)
             for category, accuracy in sorted(accuracy_by_category.items()):
-                pct = accuracy * 100
+                category_str = str(category)
+                pct = float(accuracy) * 100
                 bar_len = int(pct / 5)  # 20 chars = 100%
-                bar = "█" * bar_len + "░" * (20 - bar_len)
-                print(f"  {category:15s} [{bar}] {pct:5.1f}%")
+                bar = "#" * bar_len + "-" * (20 - bar_len)
+                print(f"  {category_str:15s} [{bar}] {pct:5.1f}%")
         
         # Token Summary
         tokens_by_stage = metrics.get("tokens_by_stage", {})
         total_tokens = metrics.get("total_tokens", 0)
         if tokens_by_stage:
-            print("\n💰 Token Usage by Stage:")
+            print("\n[Token Usage by Stage]")
             print("-" * 40)
             for stage, tokens in sorted(tokens_by_stage.items()):
-                pct = (tokens / total_tokens * 100) if total_tokens > 0 else 0
-                print(f"  {stage:15s}: {tokens:6,d} ({pct:5.1f}%)")
+                stage_str = str(stage)
+                pct = (int(tokens) / int(total_tokens) * 100) if total_tokens > 0 else 0
+                print(f"  {stage_str:15s}: {int(tokens):6,d} ({pct:5.1f}%)")
             print(f"  {'-' * 15}--------")
-            print(f"  {'TOTAL':15s}: {total_tokens:6,d}")
+            print(f"  {'TOTAL':15s}: {int(total_tokens):6,d}")
         
         print("\n" + "=" * 60 + "\n")
