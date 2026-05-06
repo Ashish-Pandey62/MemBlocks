@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 from evaluation.core.config import RunnerConfig
 from evaluation.datasets.locomo import LocomoDataset, LocomoSession
 from evaluation.metrics.locomo import LocomoEvaluator, PipelineStage, StageTokenUsage
+from evaluation.metrics.reporter import Reporter
 from evaluation.runners.base import BaseRunner
 
 try:
@@ -26,6 +27,7 @@ class LocomoRunner(BaseRunner):
     def __init__(self, config: RunnerConfig, dataset: LocomoDataset) -> None:
         super().__init__(config, dataset)
         self.dataset = dataset
+        self.config = config  # Store for Reporter.save_run_info
 
     async def _run_async(self, output_dir: Path) -> Dict[str, Any]:
         sessions = self.dataset.load()
@@ -299,5 +301,27 @@ class LocomoRunner(BaseRunner):
         }
 
     def run(self, output_dir: Path) -> Dict[str, Any]:
-        """Execute the LoCoMo evaluation pipeline."""
-        return asyncio.run(self._run_async(output_dir))
+        """Execute the LoCoMo evaluation pipeline.
+        
+        Generates JSON, CSV, run_info.json reports and prints console summary.
+        
+        Args:
+            output_dir: Directory to save evaluation outputs.
+            
+        Returns:
+            Dictionary containing evaluation results.
+        """
+        # Create output directory
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Run the pipeline
+        results = asyncio.run(self._run_async(output_dir))
+        
+        # Generate reports using Reporter
+        reporter = Reporter()
+        reporter.save_json(results, output_dir)
+        reporter.save_csv(results, output_dir)
+        reporter.save_run_info(self.config, output_dir)
+        reporter.print_summary(results)
+        
+        return results
