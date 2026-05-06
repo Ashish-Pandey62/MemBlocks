@@ -45,7 +45,6 @@ gemini_model_list.py
 
 # Development artifacts (removed from tracking)
 .planning/
-.agents/
 memblocks_lib\docs
 memblocks_lib\docs\RETRIEVAL_DATA_FLOW_VALIDATION.md
 memblocks_lib\docs\SEMANTIC_RETRIEVAL_ENHANCEMENT.md
