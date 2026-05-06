@@ -1,0 +1,16 @@
+{
+  "workflow": {
+    "research": false,
+    "plan_check": true,
+    "verifier": true,
+    "auto_advance": false,
+    "nyquist_validation": true,
+    "nyquist_validation_enabled": false,
+    "_auto_chain_active": false
+  },
+  "commit_docs": false,
+  "model_profile": "balanced",
+  "git": {
+    "branching_strategy": "none"
+  }
+}
