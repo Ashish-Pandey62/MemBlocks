@@ -19,6 +19,7 @@ class RunnerConfig(BaseModel):
     """Configuration for a runner."""
     name: str = Field(..., description="Name of the runner")
     model: Optional[str] = Field(None, description="Model to use")
+    judge_model: Optional[str] = Field(None, description="Model to use for LLM judge")
 
 
 class RunConfig(BaseModel):
