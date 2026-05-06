@@ -39,13 +39,13 @@ check_retrieval.bat
 verify_retrieval.py
 nul
 
-# Development artifacts (removed from tracking)
-.planning/
-.agents/
+
 deprecated/
 gemini_model_list.py
 
-# Utility scripts
+# Development artifacts (removed from tracking)
+.planning/
+.agents/
 memblocks_lib\docs
 memblocks_lib\docs\RETRIEVAL_DATA_FLOW_VALIDATION.md
 memblocks_lib\docs\SEMANTIC_RETRIEVAL_ENHANCEMENT.md
