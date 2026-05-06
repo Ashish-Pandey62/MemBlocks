@@ -179,7 +179,14 @@ class LocomoRunner(BaseRunner):
 
             results.append(session_results)
 
-        return {"sessions_processed": len(sessions), "details": results}
+        # Task 2: Aggregate Stats by Reasoning Type
+        metrics = self._aggregate_metrics(results)
+
+        return {
+            "sessions_processed": len(sessions),
+            "details": results,
+            "metrics": metrics
+        }
 
     def _load_qa_template(self) -> str:
         """Load QA prompt template from disk."""
@@ -225,6 +232,71 @@ class LocomoRunner(BaseRunner):
             Retrieved context from MemBlocks
         """
         return block_client.retrieve(question_text, strategy=strategy, top_k=5)
+
+    def _aggregate_metrics(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Aggregate metrics from evaluation results.
+
+        Calculates:
+        - Overall accuracy (Pass / Total questions)
+        - Accuracy by reasoning type (category)
+        - Aggregate tokens across all stages
+
+        Args:
+            results: List of session result dictionaries
+
+        Returns:
+            Dictionary containing aggregated metrics
+        """
+        total_questions = 0
+        total_passes = 0
+        category_stats: Dict[str, Dict[str, int]] = {}  # category -> {total, passes}
+        aggregate_tokens: Dict[str, int] = {
+            "retrieval": 0,
+            "extraction": 0,
+            "qa": 0,
+            "judge": 0
+        }
+
+        for session in results:
+            for eval_result in session.get("evaluations", []):
+                total_questions += 1
+                score = eval_result.get("score_hybrid", None)
+
+                if score == "Pass":
+                    total_passes += 1
+
+                # Track by category
+                category = eval_result.get("category", "unknown")
+                if category not in category_stats:
+                    category_stats[category] = {"total": 0, "passes": 0}
+
+                category_stats[category]["total"] += 1
+                if score == "Pass":
+                    category_stats[category]["passes"] += 1
+
+                # Aggregate tokens
+                tokens = eval_result.get("tokens", {})
+                for stage_name, stage_usage in tokens.items():
+                    if isinstance(stage_usage, StageTokenUsage):
+                        aggregate_tokens[stage_name] += stage_usage.total_tokens
+
+        # Calculate accuracies
+        overall_accuracy = total_passes / total_questions if total_questions > 0 else 0.0
+
+        accuracy_by_category = {}
+        for category, stats in category_stats.items():
+            accuracy_by_category[category] = (
+                stats["passes"] / stats["total"] if stats["total"] > 0 else 0.0
+            )
+
+        return {
+            "overall_accuracy": overall_accuracy,
+            "total_questions": total_questions,
+            "total_passes": total_passes,
+            "accuracy_by_category": accuracy_by_category,
+            "tokens_by_stage": aggregate_tokens,
+            "total_tokens": sum(aggregate_tokens.values())
+        }
 
     def run(self, output_dir: Path) -> Dict[str, Any]:
         """Execute the LoCoMo evaluation pipeline."""
