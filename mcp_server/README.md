@@ -9,6 +9,8 @@
 
 ### Installation
 
+> **Note**: This project uses the `src/` layout. Python files are in `src/mcp_server/`, not the root directory.
+
 1. **Install project dependencies**:
    ```bash
    uv sync --all-packages
@@ -526,13 +528,6 @@ Configure your MCP client to connect via HTTP:
 
 ## Troubleshooting
 
-### "ModuleNotFoundError: No module named 'mcp_server'"
-
-**Solution**:
-```bash
-uv pip install -e mcp_server
-```
-
 ### "Command not found: memblocks-cli"
 
 **Solution**: Use UV to run directly:
@@ -541,6 +536,27 @@ uv run memblocks-cli --help
 ```
 
 Or ensure your UV virtual environment scripts are on `PATH`.
+
+### "ModuleNotFoundError: No module named 'mcp_server'"
+
+This usually happens when installing in editable mode with the old flat structure. The project now uses the `src/` layout:
+
+```
+mcp_server/
+├── src/
+│   └── mcp_server/
+│       ├── __init__.py
+│       ├── cli.py
+│       ├── server.py
+│       └── state.py
+├── pyproject.toml
+└── README.md
+```
+
+**Solution**: Reinstall:
+```bash
+uv pip install -e mcp_server --force-reinstall
+```
 
 ### MCP Server Not Connecting (stdio)
 
