@@ -294,6 +294,19 @@ class SemanticMemoryService:
                 )
             return operations
 
+        # Guard: structured chain can return None if LLM output doesn't parse
+        if result is None:
+            logger.warning("PS2 conflict resolution returned None — falling back to ADD")
+            payload = memory_unit.model_dump(exclude={"memory_id"})
+            success = self._qdrant.store_vector(
+                self._collection, new_vector, payload, sparse_vector=new_sparse_vector
+            )
+            if success:
+                operations.append(
+                    MemoryOperation(operation="ADD", content=memory_unit.content)
+                )
+            return operations
+
         operations_performed: List[str] = []
 
         # Handle new memory decision

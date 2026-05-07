@@ -98,7 +98,7 @@ class MemBlocksConfig(BaseSettings):
         ]
 
     llm_model: str = Field(
-        "moonshotai/kimi-k2-instruct-0905",
+        "moonshotai/kimi-k2-0905",
         validation_alias="LLM_MODEL",
     )
     llm_convo_temperature: float = Field(0.7, validation_alias="LLM_CONVO_TEMPERATURE")

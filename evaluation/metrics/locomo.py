@@ -136,9 +136,16 @@ class LocomoEvaluator:
             f"- Respond Fail if the actual answer says 'I cannot answer', 'I don't know', refuses to answer, gives wrong facts, or omits the key information.\n"
             f"Respond with ONLY the single word Pass or Fail — nothing else."
         )
+        ollama_url = "http://localhost:11434"
+        try:
+            from memblocks import MemBlocksConfig
+            ollama_url = MemBlocksConfig().ollama_base_url
+        except Exception:
+            pass
+
         try:
             response = requests.post(
-                "http://localhost:11435/api/generate",
+                f"{ollama_url}/api/generate",
                 json={
                     "model": self._judge_model,
                     "prompt": judge_prompt,

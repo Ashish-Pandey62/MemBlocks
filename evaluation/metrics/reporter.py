@@ -5,7 +5,7 @@ from io import StringIO
 from pathlib import Path
 from typing import Any, Dict, List
 
-from evaluation.core.config import EvalConfig
+from pydantic import BaseModel
 
 
 class Reporter:
@@ -89,7 +89,7 @@ class Reporter:
 
     def save_run_info(
         self,
-        config: EvalConfig,
+        config: BaseModel,
         output_dir: Path,
         filename: str = "run_info.json"
     ) -> Path:
