@@ -266,38 +266,44 @@ class TestMemBlocksSDK:
 
 
 class TestNoFallback:
-    """Verify the LocomoRunner uses real MemBlocks — not _InMemoryClient."""
+    """Verify the LocomoRunner goes through MemBlocks end-to-end with no fallbacks."""
 
-    def test_runner_uses_real_sdk_not_fallback(self):
-        """The runner must report client_type='real', not 'in-memory' or 'none'."""
+    def test_runner_uses_real_memblocks(self):
+        """Runner must ingest via real MemBlocks, retrieve from Qdrant, and record success.
+
+        There are no in-memory fallback classes in the runner.
+        If MemBlocks infrastructure is down this test fails with a clear error.
+        """
         from evaluation.core.config import DatasetConfig, RunnerConfig
-        from evaluation.datasets.locomo import LocomoDataset, LocomoMessage, LocomoQuestion, LocomoSession
+        from evaluation.datasets.locomo import (
+            LocomoDataset,
+            LocomoMessage,
+            LocomoQuestion,
+            LocomoSession,
+        )
         from evaluation.runners.locomo import LocomoRunner
 
-        # Build a minimal synthetic dataset — no network download needed
         class _SyntheticDataset(LocomoDataset):
             def load(self) -> List[LocomoSession]:
                 messages = [LocomoMessage(role=r, content=c) for r, c in [
-                    ("user", "[Sam]: Hi! I'm Sam. I work as a software engineer in San Francisco."),
+                    ("user",      "[Sam]: Hi! I'm Sam, a software engineer in San Francisco."),
                     ("assistant", "[Bot]: Nice to meet you Sam!"),
-                    ("user", "[Sam]: I've been working there for 5 years. I mainly code in Python and Go."),
+                    ("user",      "[Sam]: I've been working there for 5 years in Python and Go."),
                     ("assistant", "[Bot]: That's a solid combo!"),
-                    ("user", "[Sam]: I love hiking on weekends in the Marin Headlands."),
+                    ("user",      "[Sam]: I love hiking in the Marin Headlands on weekends."),
                     ("assistant", "[Bot]: The Marin Headlands are beautiful!"),
-                    ("user", "[Sam]: I usually go with my dog Max, a golden retriever."),
+                    ("user",      "[Sam]: I usually go with my golden retriever Max."),
                     ("assistant", "[Bot]: Golden retrievers are amazing trail companions!"),
-                    ("user", "[Sam]: We usually do 10-15 km routes. Max loves the water stops."),
+                    ("user",      "[Sam]: We do 10-15 km routes. Max loves the water stops."),
                     ("assistant", "[Bot]: Sounds like an amazing pair!"),
-                    ("user", "[Sam]: I've been in SF for 5 years and love it."),
+                    ("user",      "[Sam]: I've been in SF for 5 years and love it."),
                     ("assistant", "[Bot]: SF is a great city for tech!"),
                 ]]
-                questions = [
-                    LocomoQuestion(
-                        question="Where does Sam live and work?",
-                        answer="San Francisco",
-                        category=1,
-                    )
-                ]
+                questions = [LocomoQuestion(
+                    question="Where does Sam live and work?",
+                    answer="San Francisco",
+                    category=1,
+                )]
                 return [LocomoSession(
                     session_id=f"synthetic-{_RUN_ID}",
                     messages=messages,
@@ -306,33 +312,35 @@ class TestNoFallback:
 
         dataset_cfg = DatasetConfig(name="locomo")
         runner_cfg = RunnerConfig(name="locomo", model=None, judge_model=None)
-        dataset = _SyntheticDataset(dataset_cfg)
-        runner = LocomoRunner(runner_cfg, dataset)
+        runner = LocomoRunner(runner_cfg, _SyntheticDataset(dataset_cfg))
 
-        import asyncio
         results = asyncio.run(runner._run_async())
 
         assert results["sessions_processed"] == 1
         session_detail = results["details"][0]
-
-        client_type = session_detail.get("client_type", "unknown")
         ingestion_status = session_detail.get("ingestion_status", "unknown")
 
-        print(f"\n✓ client_type    : {client_type}")
-        print(f"✓ ingestion_status: {ingestion_status}")
-        print(f"✓ block_id        : {session_detail.get('block_id')}")
+        print(f"\n✓ ingestion_status : {ingestion_status}")
+        print(f"✓ block_id         : {session_detail.get('block_id')}")
 
-        assert client_type == "real", (
-            f"Runner used fallback '{client_type}' instead of real MemBlocks SDK.\n"
-            f"Ingestion status: {ingestion_status}\n"
-            "Check that Qdrant (localhost:6333) and MongoDB Atlas are reachable."
+        assert ingestion_status == "success", (
+            f"MemBlocks ingestion failed: {ingestion_status}\n"
+            "Ensure Qdrant (localhost:6333) and MongoDB Atlas are reachable."
         )
-        assert ingestion_status == "success", f"Ingestion failed: {ingestion_status}"
+        assert session_detail.get("block_id"), "No block_id — MemBlocks block was not created"
 
-        # Verify at least one question was evaluated
         evals = session_detail.get("evaluations", [])
         assert len(evals) == 1
         ev = evals[0]
-        print(f"✓ Question status : {ev.get('status')}")
-        print(f"✓ Retrieved context (hybrid, first 300 chars):\n"
-              f"  {str(ev.get('retrieved_context_hybrid', ''))[:300]}")
+
+        print(f"✓ question status  : {ev.get('status')}")
+        print(f"✓ memory_window    : {ev.get('memory_window_size')} messages")
+        print(f"✓ has_summary      : {ev.get('has_summary')}")
+        print(f"✓ hybrid ctx (300c): {str(ev.get('retrieved_context_hybrid', ''))[:300]}")
+
+        # Retrieval must have run (status != pending)
+        assert ev.get("status") != "pending", "Retrieval never executed"
+        # Hybrid context must contain something from Qdrant/MongoDB
+        assert ev.get("retrieved_context_hybrid") is not None, (
+            "Hybrid retrieval returned None — MemBlocks retrieval did not execute"
+        )

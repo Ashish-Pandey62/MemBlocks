@@ -1,4 +1,9 @@
-"""LoCoMo specific evaluation runner."""
+"""LoCoMo specific evaluation runner.
+
+All data flows go through the real MemBlocks SDK (Qdrant + MongoDB).
+There are no in-memory fallbacks — if infrastructure is unavailable the
+session is marked as failed and its questions are skipped.
+"""
 
 import asyncio
 from pathlib import Path
@@ -12,120 +17,31 @@ from evaluation.runners.base import BaseRunner
 
 try:
     from memblocks import MemBlocksClient, MemBlocksConfig
-except ImportError:
-    MemBlocksClient = None
-    MemBlocksConfig = None
+except ImportError as _e:
+    raise ImportError(
+        "The 'memblocks' package is required to run evaluation. "
+        "Install it with:  pip install -e memblocks_lib"
+    ) from _e
 
 # Path to QA prompt template (relative to project root)
-QA_TEMPLATE_PATH = Path(__file__).parent.parent.parent / ".planning" / "phases" / "08-evaluation-pipeline" / "templates" / "qa_prompt.txt"
+QA_TEMPLATE_PATH = (
+    Path(__file__).parent.parent.parent
+    / ".planning"
+    / "phases"
+    / "08-evaluation-pipeline"
+    / "templates"
+    / "qa_prompt.txt"
+)
 
-
-# ---------------------------------------------------------------------------
-# In-memory fallback classes (mirror the real SDK's async interface)
-# ---------------------------------------------------------------------------
-
-class _InMemoryRetrievalResult:
-    """Minimal stand-in for memblocks.models.retrieval.RetrievalResult."""
-
-    def __init__(self, context: str) -> None:
-        self._context = context
-
-    def to_prompt_string(self) -> str:
-        return self._context
-
-    def __str__(self) -> str:
-        return self._context
-
-
-class _InMemoryBlock:
-    """Async stand-in for memblocks.services.block.Block."""
-
-    def __init__(self) -> None:
-        self.id: str = ""
-        self._session: Optional["_InMemorySession"] = None
-
-    def _all_texts(self) -> List[str]:
-        if not self._session:
-            return []
-        return [t for pair in self._session._turns for t in pair if t]
-
-    def _keyword_search(self, query: str, top_k: int = 5) -> str:
-        terms = set(query.lower().split())
-        scored = sorted(
-            ((sum(1 for t in terms if t in txt.lower()), txt) for txt in self._all_texts()),
-            reverse=True,
-        )
-        return "\n".join(txt for _, txt in scored[:top_k])
-
-    async def retrieve(self, query: str) -> _InMemoryRetrievalResult:
-        return _InMemoryRetrievalResult(self._keyword_search(query))
-
-    async def semantic_retrieve(self, query: str) -> _InMemoryRetrievalResult:
-        return _InMemoryRetrievalResult(self._keyword_search(query))
-
-    async def core_retrieve(self) -> _InMemoryRetrievalResult:
-        texts = self._all_texts()[-10:]
-        return _InMemoryRetrievalResult("\n".join(texts))
-
-
-class _InMemorySession:
-    """Async stand-in for memblocks.services.session.Session."""
-
-    def __init__(self) -> None:
-        self._turns: List[tuple] = []
-        self._user_id: str = ""
-
-    async def add(self, user_msg: str, ai_response: str) -> None:
-        self._turns.append((user_msg, ai_response))
-
-    async def flush(self) -> str:
-        return ""
-
-    async def get_memory_window(self) -> List[Dict[str, str]]:
-        msgs: List[Dict[str, str]] = []
-        for u, a in self._turns[-5:]:
-            msgs.append({"role": "user", "content": u})
-            if a:
-                msgs.append({"role": "assistant", "content": a})
-        return msgs
-
-    async def get_recursive_summary(self) -> str:
-        return ""
-
-
-class _InMemoryClient:
-    """Async stand-in for MemBlocksClient when real SDK unavailable."""
-
-    def __init__(self) -> None:
-        self._blocks: Dict[str, _InMemoryBlock] = {}
-
-    async def get_or_create_user(self, user_id: str) -> Dict[str, Any]:
-        return {"user_id": user_id}
-
-    async def create_block(self, user_id: str, name: str) -> _InMemoryBlock:
-        block = _InMemoryBlock()
-        block.id = f"block_{user_id}_{name}"
-        self._blocks[block.id] = block
-        return block
-
-    async def create_session(self, user_id: str, block_id: str) -> _InMemorySession:
-        session = _InMemorySession()
-        session._user_id = user_id
-        block = self._blocks.get(block_id)
-        if block:
-            block._session = session
-        return session
-
-    async def close(self) -> None:
-        pass
-
-
-# ---------------------------------------------------------------------------
-# Runner
-# ---------------------------------------------------------------------------
 
 class LocomoRunner(BaseRunner):
-    """Runner for evaluating MemBlocks on the LoCoMo dataset."""
+    """Runner for evaluating MemBlocks on the LoCoMo dataset.
+
+    Uses the real MemBlocks SDK for all data operations.
+    If MemBlocks infrastructure (Qdrant / MongoDB) is unavailable for a
+    session, that session is recorded as failed and its questions are skipped.
+    No in-memory substitution is ever performed.
+    """
 
     def __init__(self, config: Union[RunnerConfig, RunConfig], dataset: LocomoDataset) -> None:
         runner_config = config.runner if isinstance(config, RunConfig) else config
@@ -135,25 +51,20 @@ class LocomoRunner(BaseRunner):
         self.run_config = config
 
     # ------------------------------------------------------------------
-    # Session setup helpers
+    # MemBlocks session lifecycle
     # ------------------------------------------------------------------
 
-    async def _setup_session(self, user_id: str, block_name: str):
-        """Try real SDK first; fall back to in-memory client."""
-        if MemBlocksClient is not None and MemBlocksConfig is not None:
-            try:
-                client = MemBlocksClient(MemBlocksConfig())
-                await client.get_or_create_user(user_id)
-                block = await client.create_block(user_id=user_id, name=block_name)
-                session = await client.create_session(user_id=user_id, block_id=block.id)
-                return client, block, session, "real"
-            except Exception:
-                pass
-        client = _InMemoryClient()
+    async def _create_session(self, user_id: str, block_name: str):
+        """Create a MemBlocks client, block, and session against real infrastructure.
+
+        Raises:
+            Any exception from MemBlocksClient (MongoDB / Qdrant connectivity).
+        """
+        client = MemBlocksClient(MemBlocksConfig())
         await client.get_or_create_user(user_id)
         block = await client.create_block(user_id=user_id, name=block_name)
         session = await client.create_session(user_id=user_id, block_id=block.id)
-        return client, block, session, "in-memory"
+        return client, block, session
 
     # ------------------------------------------------------------------
     # Message pairing
@@ -174,8 +85,7 @@ class LocomoRunner(BaseRunner):
                     i += 1
                 turns.append((user_content, ai_content))
             else:
-                # skip leading/extra assistant messages
-                i += 1
+                i += 1  # skip leading/extra assistant messages
         return turns
 
     # ------------------------------------------------------------------
@@ -183,7 +93,7 @@ class LocomoRunner(BaseRunner):
     # ------------------------------------------------------------------
 
     async def _retrieve_context(self, question_text: str, block, strategy: str) -> str:
-        """Retrieve context from the block using the specified strategy."""
+        """Retrieve context from the MemBlocks block using the specified strategy."""
         if strategy == "semantic":
             result = await block.semantic_retrieve(question_text)
         elif strategy == "core":
@@ -198,7 +108,7 @@ class LocomoRunner(BaseRunner):
         memory_window: List[Dict[str, str]],
         summary: str,
     ) -> str:
-        """Augment retrieved context with memory window and summary."""
+        """Combine retrieved memories, memory window, and summary into one context string."""
         parts = []
         if summary:
             parts.append(f"[Conversation Summary]\n{summary}")
@@ -212,7 +122,7 @@ class LocomoRunner(BaseRunner):
         return "\n\n".join(parts) if parts else "[No context available]"
 
     # ------------------------------------------------------------------
-    # LLM helpers
+    # LLM helpers (QA + judge via Ollama)
     # ------------------------------------------------------------------
 
     def _load_qa_template(self) -> Optional[str]:
@@ -231,21 +141,18 @@ class LocomoRunner(BaseRunner):
         return prompt
 
     def _ollama_base_url(self) -> str:
-        """Return the Ollama generation base URL from MemBlocksConfig if available."""
-        if MemBlocksConfig is not None:
-            try:
-                return MemBlocksConfig().ollama_base_url
-            except Exception:
-                pass
-        return "http://localhost:11434"
+        """Return the Ollama generation base URL from MemBlocksConfig (.env OLLAMA_BASE_URL)."""
+        try:
+            return MemBlocksConfig().ollama_base_url
+        except Exception:
+            return "http://localhost:11434"
 
     def _call_llm(self, prompt: str) -> str:
-        """Call the configured Ollama model and return its response."""
+        """POST prompt to the configured Ollama model and return its response text."""
         import requests
 
         model = self.config.model if self.config and self.config.model else None
-        stub_names = {None, "stub-model", "default", ""}
-        if model in stub_names:
+        if not model:
             return f"Stub answer for prompt: {prompt[:50]}..."
 
         try:
@@ -268,7 +175,7 @@ class LocomoRunner(BaseRunner):
     # ------------------------------------------------------------------
 
     def _aggregate_metrics(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Aggregate metrics from evaluation results across all 3 strategies."""
+        """Aggregate pass/fail metrics across all sessions and strategies."""
         total_questions = 0
         strategy_passes: Dict[str, int] = {"semantic": 0, "core": 0, "hybrid": 0}
         category_stats: Dict[str, Dict[str, int]] = {}
@@ -304,22 +211,18 @@ class LocomoRunner(BaseRunner):
         total_passes = strategy_passes["hybrid"]
         overall_accuracy = total_passes / total_questions if total_questions else 0.0
 
-        accuracy_by_category = {
-            cat: stats["passes"] / stats["total"] if stats["total"] else 0.0
-            for cat, stats in category_stats.items()
-        }
-
-        accuracy_by_strategy = {
-            s: strategy_passes[s] / total_questions if total_questions else 0.0
-            for s in ("semantic", "core", "hybrid")
-        }
-
         return {
             "overall_accuracy": overall_accuracy,
             "total_questions": total_questions,
             "total_passes": total_passes,
-            "accuracy_by_category": accuracy_by_category,
-            "accuracy_by_strategy": accuracy_by_strategy,
+            "accuracy_by_category": {
+                cat: stats["passes"] / stats["total"] if stats["total"] else 0.0
+                for cat, stats in category_stats.items()
+            },
+            "accuracy_by_strategy": {
+                s: strategy_passes[s] / total_questions if total_questions else 0.0
+                for s in ("semantic", "core", "hybrid")
+            },
             "tokens_by_stage": aggregate_tokens,
             "total_tokens": sum(aggregate_tokens.values()),
         }
@@ -331,8 +234,6 @@ class LocomoRunner(BaseRunner):
     async def _run_async(self) -> Dict[str, Any]:
         sessions = self.dataset.load()
         results: List[Dict[str, Any]] = []
-
-        # Load QA prompt template once
         qa_template = self._load_qa_template()
 
         for session in sessions:
@@ -346,30 +247,27 @@ class LocomoRunner(BaseRunner):
             client = None
             block = None
             mb_session = None
-            client_type = "none"
 
             try:
                 user_id = f"eval-locomo-{session.session_id}"
                 block_name = f"locomo-session-{session.session_id}"
-                client, block, mb_session, client_type = await self._setup_session(
-                    user_id, block_name
-                )
+
+                client, block, mb_session = await self._create_session(user_id, block_name)
 
                 # Ingest conversation as paired (user_msg, ai_response) turns
                 turns = self._pair_messages(session.messages)
                 for user_msg, ai_response in turns:
                     await mb_session.add(user_msg=user_msg, ai_response=ai_response)
 
-                # Single flush after all turns to process remaining messages
+                # Flush at end of ingestion to run the memory pipeline on remaining turns
                 if turns:
                     await mb_session.flush()
 
                 session_results["ingestion_status"] = "success"
                 session_results["block_id"] = block.id
-                session_results["client_type"] = client_type
 
                 # ----------------------------------------------------------
-                # Retrieval + QA
+                # Retrieval + QA — only runs when ingestion succeeded
                 # ----------------------------------------------------------
                 for question in session.questions:
                     eval_result: Dict[str, Any] = {
@@ -381,7 +279,7 @@ class LocomoRunner(BaseRunner):
                     }
 
                     try:
-                        # Retrieve context using all 3 strategies
+                        # Retrieve via all 3 MemBlocks strategies
                         semantic_ctx = await self._retrieve_context(
                             question.question, block, "semantic"
                         )
@@ -392,7 +290,7 @@ class LocomoRunner(BaseRunner):
                             question.question, block, "hybrid"
                         )
 
-                        # Fetch memory window and summary for context augmentation
+                        # Pull memory window + recursive summary from MemBlocks
                         memory_window = await mb_session.get_memory_window()
                         summary = await mb_session.get_recursive_summary()
 
@@ -403,7 +301,6 @@ class LocomoRunner(BaseRunner):
                         eval_result["has_summary"] = bool(summary)
 
                         if qa_template is None:
-                            # Explicitly flag that QA was skipped due to missing template
                             eval_result["status"] = "skipped_no_qa_template"
                         else:
                             evaluator = LocomoEvaluator(self.config)
@@ -425,20 +322,18 @@ class LocomoRunner(BaseRunner):
                                     )
                                 )
 
-                            # Convenience alias: primary answer is from hybrid strategy
                             eval_result["actual_answer"] = eval_result.get("answer_hybrid", "")
                             eval_result["status"] = "evaluated"
 
-                            # Capture prompt/response trace for the hybrid strategy
-                            hybrid_prompt = self._fill_qa_prompt(
+                            # Capture hybrid trace for debugging
+                            eval_result["prompt_trace"] = self._fill_qa_prompt(
                                 qa_template,
                                 self._build_full_context(hybrid_ctx, memory_window, summary),
                                 question.question,
                             )
-                            eval_result["prompt_trace"] = hybrid_prompt
                             eval_result["response_trace"] = eval_result.get("answer_hybrid", "")
 
-                            # Stub token metrics (kept until real LLM usage tracking is wired)
+                            # Stub token metrics — replace with real LLM usage tracker when ready
                             eval_result["tokens"] = {
                                 "retrieval": StageTokenUsage(
                                     stage=PipelineStage.RETRIEVAL,
@@ -485,14 +380,15 @@ class LocomoRunner(BaseRunner):
                             }
 
                     except Exception as e:
-                        eval_result["status"] = f"failed: {e}"
+                        eval_result["status"] = f"retrieval_failed: {e}"
 
                     session_results["evaluations"].append(eval_result)
 
             except Exception as e:
-                session_results["ingestion_status"] = f"failed: {e}"
+                # MemBlocks infrastructure error — record and skip QA for this session.
+                # No in-memory substitution: the session result reflects the real failure.
+                session_results["ingestion_status"] = f"memblocks_error: {e}"
                 session_results["block_id"] = None
-                session_results["client_type"] = "none"
 
             finally:
                 if client is not None:
@@ -500,12 +396,10 @@ class LocomoRunner(BaseRunner):
 
             results.append(session_results)
 
-        metrics = self._aggregate_metrics(results)
-
         return {
             "sessions_processed": len(sessions),
             "details": results,
-            "metrics": metrics,
+            "metrics": self._aggregate_metrics(results),
         }
 
     # ------------------------------------------------------------------
@@ -513,18 +407,15 @@ class LocomoRunner(BaseRunner):
     # ------------------------------------------------------------------
 
     def run(self, output_dir: Path) -> Dict[str, Any]:
-        """Execute the LoCoMo evaluation pipeline.
-
-        Generates JSON, CSV, run_info.json reports and prints console summary.
+        """Execute the LoCoMo evaluation pipeline and write reports.
 
         Args:
-            output_dir: Directory to save evaluation outputs.
+            output_dir: Directory to save report.json / report.csv / run_info.json.
 
         Returns:
-            Dictionary containing evaluation results.
+            Evaluation results dictionary.
         """
         output_dir.mkdir(parents=True, exist_ok=True)
-
         results = asyncio.run(self._run_async())
 
         reporter = Reporter()
@@ -534,3 +425,6 @@ class LocomoRunner(BaseRunner):
         reporter.print_summary(results)
 
         return results
+    
+
+    
