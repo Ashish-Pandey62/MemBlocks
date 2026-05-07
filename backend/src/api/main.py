@@ -10,7 +10,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import APIRouter
 
-from backend.src.api.routers import auth, blocks, chat, memory, transparency, users
+from backend.src.api.routers import (
+    auth,
+    blocks,
+    chat,
+    memory,
+    transparency,
+    users,
+    analytics,
+)
 from backend.src.api.dependencies import get_client
 
 
@@ -92,6 +100,7 @@ def create_app() -> FastAPI:
     api_router.include_router(chat.router)
     api_router.include_router(memory.router)
     api_router.include_router(transparency.router)
+    api_router.include_router(analytics.router)
 
     app.include_router(api_router)
 
