@@ -1,9 +1,5 @@
-Answer the user's question using the provided context.
-
-Think step by step before providing your final answer.
+Based on the above context, write an answer in the form of a short phrase for the following question. Answer with exact words from the context whenever possible.
 
 <context>{retrieved_context}</context>
 
 Question: {question_text}
-
-Provide your final answer in 1-2 sentences.

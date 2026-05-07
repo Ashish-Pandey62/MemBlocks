@@ -1,6 +1,6 @@
 """Locomo evaluation metrics with token tracking."""
 
-from typing import Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -68,9 +68,14 @@ class TokenTracker:
 class LocomoEvaluator:
     """Locomo evaluation metric - LLM-as-a-Judge for pass/fail accuracy."""
     
-    def __init__(self, config: Optional[RunnerConfig] = None):
-        """Initialize with optional RunnerConfig."""
+    def __init__(
+        self,
+        config: Optional[RunnerConfig] = None,
+        judge_provider: Optional[Any] = None,
+    ):
+        """Initialize with optional RunnerConfig and LLM providers."""
         self._judge_model = config.judge_model if config else None
+        self._judge_provider = judge_provider
         self._token_tracker = TokenTracker()
     
     @property
@@ -107,57 +112,41 @@ class LocomoEvaluator:
             return "Pass"
         return "Fail"
     
-    def evaluate_with_judge(
+    # def evaluate_with_judge(
+    #     self,
+    #     question: str,
+    #     expected_answer: str,
+    #     actual_answer: str,
+    # ) -> str:
+    #     """Evaluate using the judge LLM provider.
+
+    #     Uses the provided judge_provider if available and has a chat method,
+    #     otherwise falls back to string matching.
+
+    #     Returns:
+    #         "Pass" or "Fail" from the judge.
+    #     """
+    #     if self._judge_provider is not None:
+    #         return "deferred_to_runner"
+
+    #     return self.evaluate_answer(question, expected_answer, actual_answer)
+
+    def evaluate_with_judge_sync(
         self,
         question: str,
         expected_answer: str,
         actual_answer: str,
+        judge_result: str,
     ) -> str:
-        """Evaluate using the configured Ollama LLM judge.
+        """Evaluate with a pre-computed judge result.
 
-        Falls back to string matching when no real judge model is configured.
+        This is used when the runner calls the judge LLM directly.
 
         Returns:
-            "Pass" or "Fail" from the judge.
+            "Pass" or "Fail" based on the judge result.
         """
-        if self._judge_model is None:
-            raise ValueError("No judge model configured for LLM evaluation")
-
-        import requests
-
-        judge_prompt = (
-            f"You are a strict evaluator.\n\n"
-            f"Question: {question}\n"
-            f"Expected Answer: {expected_answer}\n"
-            f"Actual Answer: {actual_answer}\n\n"
-            f"Rules:\n"
-            f"- Respond Pass ONLY if the actual answer contains the key facts from the expected answer.\n"
-            f"- Respond Fail if the actual answer says 'I cannot answer', 'I don't know', refuses to answer, gives wrong facts, or omits the key information.\n"
-            f"Respond with ONLY the single word Pass or Fail — nothing else."
-        )
-
-        #TODO: replace with LLMProvider from memblocks
-        ollama_url = "http://localhost:11434"
-        try:
-            from memblocks import MemBlocksConfig
-            ollama_url = MemBlocksConfig().ollama_base_url
-        except Exception:
-            pass
-
-        try:
-            response = requests.post(
-                f"{ollama_url}/api/generate",
-                json={
-                    "model": self._judge_model,
-                    "prompt": judge_prompt,
-                    "stream": False,
-                    "options": {"temperature": 0},
-                },
-                timeout=120,
-            )
-            text = response.json().get("response", "").strip()
-            if "pass" in text.lower():
-                return "Pass"
+        if judge_result and "pass" in judge_result.lower():
+            return "Pass"
+        elif judge_result and "fail" in judge_result.lower():
             return "Fail"
-        except Exception:
-            return self.evaluate_answer(question, expected_answer, actual_answer)
+        return self.evaluate_answer(question, expected_answer, actual_answer)

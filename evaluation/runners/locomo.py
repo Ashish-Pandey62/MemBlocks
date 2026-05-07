@@ -7,7 +7,7 @@ session is marked as failed and its questions are skipped.
 
 import asyncio
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 
 from evaluation.core.config import RunConfig, RunnerConfig
 from evaluation.datasets.locomo import LocomoDataset, LocomoMessage
@@ -33,6 +33,14 @@ QA_TEMPLATE_PATH = (
     / "qa_prompt.txt"
 )
 
+QA_TEMPLATE = """
+Based on the above context, write an answer in the form of a short phrase for the following question. Answer with exact words from the context whenever possible.
+
+<context>{retrieved_context}</context>
+
+Question: {question_text}
+
+"""
 
 class LocomoRunner(BaseRunner):
     """Runner for evaluating MemBlocks on the LoCoMo dataset.
@@ -116,7 +124,7 @@ class LocomoRunner(BaseRunner):
             parts.append(retrieved_ctx)
         return "\n\n".join(parts) if parts else "[No context available]"
 
-    # ------------------------------------------------------------------
+# ------------------------------------------------------------------
     # LLM helpers (QA + judge via Ollama)
     # ------------------------------------------------------------------
 
@@ -125,9 +133,28 @@ class LocomoRunner(BaseRunner):
         try:
             if QA_TEMPLATE_PATH.exists():
                 return QA_TEMPLATE_PATH.read_text(encoding="utf-8")
-            return None
+            else:
+                return QA_TEMPLATE  # fallback to hardcoded template if file is missing
         except Exception:
             return None
+
+    def _create_qa_client(self) -> "MemBlocksClient":
+        """Create a MemBlocksClient configured for QA generation using Ollama."""
+        config = MemBlocksConfig(
+            llm_provider_name="ollama",
+            llm_model=self.config.model,
+            llm_convo_temperature=0.0,
+        )
+        return MemBlocksClient(config)
+
+    def _create_judge_client(self) -> "MemBlocksClient":
+        """Create a MemBlocksClient configured for judging using Ollama."""
+        config = MemBlocksConfig(
+            llm_provider_name="ollama",
+            llm_model=self.config.judge_model,
+            llm_convo_temperature=0.0,
+        )
+        return MemBlocksClient(config)
 
     def _fill_qa_prompt(self, template: str, retrieved_context: Any, question_text: str) -> str:
         """Fill QA prompt template with context and question."""
@@ -144,7 +171,7 @@ class LocomoRunner(BaseRunner):
 
     def _call_llm(self, prompt: str) -> str:
         """POST prompt to the configured Ollama model and return its response text."""
-        #TODO: replace with LLM provider from MemBlocks (client.conversation_llm), to get real token usage metrics and avoid hardcoding the endpoint and response parsing.
+        # Keeping this for backward compatibility - new code uses conversation_llm
         import requests
 
         model = self.config.model if self.config and self.config.model else None
@@ -165,6 +192,41 @@ class LocomoRunner(BaseRunner):
             return response.json().get("response", "").strip()
         except Exception as e:
             return f"LLM call failed: {e}"
+
+    def _extract_token_usage(
+        self,
+        client: "MemBlocksClient",
+        stage: PipelineStage,
+    ) -> StageTokenUsage:
+        """Extract token usage from client.llm_usage for a specific stage."""
+        try:
+            from memblocks.models.transparency import LLMCallType
+            
+            call_type_map = {
+                PipelineStage.QA: LLMCallType.CONVERSATION,
+                PipelineStage.JUDGE: LLMCallType.CONVERSATION,
+                PipelineStage.RETRIEVAL: LLMCallType.RETRIEVAL,
+                PipelineStage.EXTRACTION: LLMCallType.PS1_EXTRACTION,
+                PipelineStage.CONFLICT_MANAGEMENT: LLMCallType.PS2_CONFLICT,
+                PipelineStage.CORE_MEMORY_GENERATION: LLMCallType.CORE_MEMORY,
+                PipelineStage.SUMMARY_GENERATION: LLMCallType.SUMMARY,
+            }
+            
+            llm_call_type = call_type_map.get(stage, LLMCallType.CONVERSATION)
+            records = client.llm_usage.get_records(call_type=llm_call_type, limit=10)
+            
+            if records:
+                latest = records[-1]
+                return StageTokenUsage(
+                    stage=stage,
+                    prompt_tokens=latest.input_tokens,
+                    completion_tokens=latest.output_tokens,
+                    total_tokens=latest.total_tokens,
+                )
+        except Exception:
+            pass
+        
+        return StageTokenUsage(stage=stage, prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
     # ------------------------------------------------------------------
     # Metrics aggregation
@@ -237,6 +299,8 @@ class LocomoRunner(BaseRunner):
             client = None
             block = None
             mb_session = None
+            qa_client = None
+            judge_client = None
 
             try:
                 user_id = f"eval-locomo-{session.session_id}"
@@ -255,6 +319,10 @@ class LocomoRunner(BaseRunner):
 
                 session_results["ingestion_status"] = "success"
                 session_results["block_id"] = block.id
+
+                # Create separate clients for QA and judging
+                qa_client = self._create_qa_client()
+                judge_client = self._create_judge_client()
 
                 # ----------------------------------------------------------
                 # Retrieval + QA — only runs when ingestion succeeded
@@ -285,70 +353,72 @@ class LocomoRunner(BaseRunner):
                         if qa_template is None:
                             eval_result["status"] = "skipped_no_qa_template"
                         else:
-                            evaluator = LocomoEvaluator(self.config)
+                            evaluator = LocomoEvaluator(
+                                self.config,
+                                qa_provider=qa_client.conversation_llm,
+                                judge_provider=judge_client.conversation_llm,
+                            )
 
                             full_ctx = self._build_full_context(retrieved_ctx, summary, memory_window=None)
                             prompt = self._fill_qa_prompt(
                                 qa_template, full_ctx, question.question
                             )
-                            answer = self._call_llm(prompt)
-                            eval_result["answer"] = answer
-                            eval_result["score"] = evaluator.evaluate_with_judge(
-                                question.question, question.answer, answer
+                            answer = await qa_client.conversation_llm.chat(
+                                [{"role": "user", "content": prompt}]
                             )
+                            eval_result["answer"] = answer
+                            
+                            # Use structured output for judge
+                            from pydantic import BaseModel
+                            
+                            class JudgeOutput(BaseModel):
+                                decision: Literal["Pass", "Fail"]
+                                reasoning: str
+                            
+                            judge_chain = judge_client.conversation_llm.create_structured_chain(
+                                system_prompt=(
+                                    "You are a strict evaluator. Respond with a JSON object containing "
+                                    "'decision' (either 'Pass' or 'Fail') and 'reasoning' (brief explanation). "
+                                    "Respond Pass ONLY if the actual answer contains the key facts from the expected answer. "
+                                    "Respond Fail if the actual answer says 'I cannot answer', 'I don't know', "
+                                    "refuses to answer, gives wrong facts, or omits the key information."
+                                ),
+                                pydantic_model=JudgeOutput,
+                                temperature=0.0,
+                            )
+                            judge_input = (
+                                f"Question: {question.question}\n"
+                                f"Expected Answer: {question.answer}\n"
+                                f"Actual Answer: {answer}"
+                            )
+                            judge_output = await judge_chain.ainvoke({"input": judge_input})
+                            eval_result["score"] = judge_output.decision
 
                             eval_result["actual_answer"] = answer
                             eval_result["status"] = "evaluated"
 
-                            # Capture trace for debugging
-                            eval_result["prompt_trace"] = self._fill_qa_prompt(
-                                qa_template, full_ctx, question.question
-                            )
-                            eval_result["response_trace"] = answer
-
-                            #TODO: Stub token metrics — replace with real LLM usage tracker when Memblocks LLM provider is ready. Use client.get_token_usage() to get real token usage per stage, and remove hardcoded values.
+                            # Extract real token usage from clients
                             eval_result["tokens"] = {
-                                "retrieval": StageTokenUsage(
-                                    stage=PipelineStage.RETRIEVAL,
-                                    prompt_tokens=50,
-                                    completion_tokens=20,
-                                    total_tokens=70,
+                                "retrieval": self._extract_token_usage(
+                                    client, PipelineStage.RETRIEVAL
                                 ),
-                                "extraction": StageTokenUsage(
-                                    stage=PipelineStage.EXTRACTION,
-                                    prompt_tokens=30,
-                                    completion_tokens=10,
-                                    total_tokens=40,
+                                "extraction": self._extract_token_usage(
+                                    client, PipelineStage.EXTRACTION
                                 ),
-                                "qa": StageTokenUsage(
-                                    stage=PipelineStage.QA,
-                                    prompt_tokens=200,
-                                    completion_tokens=100,
-                                    total_tokens=300,
+                                "qa": self._extract_token_usage(
+                                    qa_client, PipelineStage.QA
                                 ),
-                                "conflict_management": StageTokenUsage(
-                                    stage=PipelineStage.CONFLICT_MANAGEMENT,
-                                    prompt_tokens=0,
-                                    completion_tokens=0,
-                                    total_tokens=0,
+                                "conflict_management": self._extract_token_usage(
+                                    client, PipelineStage.CONFLICT_MANAGEMENT
                                 ),
-                                "summary_generation": StageTokenUsage(
-                                    stage=PipelineStage.SUMMARY_GENERATION,
-                                    prompt_tokens=0,
-                                    completion_tokens=0,
-                                    total_tokens=0,
+                                "summary_generation": self._extract_token_usage(
+                                    client, PipelineStage.SUMMARY_GENERATION
                                 ),
-                                "core_memory_generation": StageTokenUsage(
-                                    stage=PipelineStage.CORE_MEMORY_GENERATION,
-                                    prompt_tokens=0,
-                                    completion_tokens=0,
-                                    total_tokens=0,
+                                "core_memory_generation": self._extract_token_usage(
+                                    client, PipelineStage.CORE_MEMORY_GENERATION
                                 ),
-                                "judge": StageTokenUsage(
-                                    stage=PipelineStage.JUDGE,
-                                    prompt_tokens=150,
-                                    completion_tokens=50,
-                                    total_tokens=200,
+                                "judge": self._extract_token_usage(
+                                    judge_client, PipelineStage.JUDGE
                                 ),
                             }
 
@@ -366,6 +436,10 @@ class LocomoRunner(BaseRunner):
             finally:
                 if client is not None:
                     await client.close()
+                if qa_client is not None:
+                    await qa_client.close()
+                if judge_client is not None:
+                    await judge_client.close()
 
             results.append(session_results)
 
