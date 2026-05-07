@@ -336,11 +336,11 @@ class TestNoFallback:
         print(f"✓ question status  : {ev.get('status')}")
         print(f"✓ memory_window    : {ev.get('memory_window_size')} messages")
         print(f"✓ has_summary      : {ev.get('has_summary')}")
-        print(f"✓ hybrid ctx (300c): {str(ev.get('retrieved_context_hybrid', ''))[:300]}")
+        print(f"✓ retrieved ctx (300c): {str(ev.get('retrieved_context', ''))[:300]}")
 
         # Retrieval must have run (status != pending)
         assert ev.get("status") != "pending", "Retrieval never executed"
-        # Hybrid context must contain something from Qdrant/MongoDB
-        assert ev.get("retrieved_context_hybrid") is not None, (
-            "Hybrid retrieval returned None — MemBlocks retrieval did not execute"
+        # Retrieved context must contain something from Qdrant/MongoDB
+        assert ev.get("retrieved_context") is not None, (
+            "Retrieval returned None — MemBlocks retrieval did not execute"
         )

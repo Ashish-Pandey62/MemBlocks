@@ -60,7 +60,7 @@ class LocomoRunner(BaseRunner):
         Raises:
             Any exception from MemBlocksClient (MongoDB / Qdrant connectivity).
         """
-        client = MemBlocksClient(MemBlocksConfig())
+        client = MemBlocksClient(MemBlocksConfig(memory_window_limit=10000))
         await client.get_or_create_user(user_id)
         block = await client.create_block(user_id=user_id, name=block_name)
         session = await client.create_session(user_id=user_id, block_id=block.id)
@@ -92,21 +92,16 @@ class LocomoRunner(BaseRunner):
     # Retrieval helpers
     # ------------------------------------------------------------------
 
-    async def _retrieve_context(self, question_text: str, block, strategy: str) -> str:
-        """Retrieve context from the MemBlocks block using the specified strategy."""
-        if strategy == "semantic":
-            result = await block.semantic_retrieve(question_text)
-        elif strategy == "core":
-            result = await block.core_retrieve()
-        else:
-            result = await block.retrieve(question_text)
+    async def _retrieve_context(self, question_text: str, block) -> str:
+        """Retrieve context from the MemBlocks block using hybrid strategy (semantic + core)."""
+        result = await block.retrieve(question_text)
         return result.to_prompt_string()
 
     def _build_full_context(
         self,
         retrieved_ctx: str,
-        memory_window: List[Dict[str, str]],
         summary: str,
+        memory_window: List[Dict[str, str]] = None,
     ) -> str:
         """Combine retrieved memories, memory window, and summary into one context string."""
         parts = []
@@ -149,11 +144,12 @@ class LocomoRunner(BaseRunner):
 
     def _call_llm(self, prompt: str) -> str:
         """POST prompt to the configured Ollama model and return its response text."""
+        #TODO: replace with LLM provider from MemBlocks (client.conversation_llm), to get real token usage metrics and avoid hardcoding the endpoint and response parsing.
         import requests
 
         model = self.config.model if self.config and self.config.model else None
         if not model:
-            return f"Stub answer for prompt: {prompt[:50]}..."
+            raise ValueError("LLM model not specified in configuration")
 
         try:
             response = requests.post(
@@ -175,9 +171,9 @@ class LocomoRunner(BaseRunner):
     # ------------------------------------------------------------------
 
     def _aggregate_metrics(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Aggregate pass/fail metrics across all sessions and strategies."""
+        """Aggregate pass/fail metrics across all sessions."""
         total_questions = 0
-        strategy_passes: Dict[str, int] = {"semantic": 0, "core": 0, "hybrid": 0}
+        total_passes = 0
         category_stats: Dict[str, Dict[str, int]] = {}
         aggregate_tokens: Dict[str, int] = {
             "retrieval": 0,
@@ -193,22 +189,20 @@ class LocomoRunner(BaseRunner):
             for ev in session.get("evaluations", []):
                 total_questions += 1
 
-                for strategy in ("semantic", "core", "hybrid"):
-                    if ev.get(f"score_{strategy}") == "Pass":
-                        strategy_passes[strategy] += 1
+                if ev.get("score") == "Pass":
+                    total_passes += 1
 
                 category = ev.get("category", "unknown")
                 if category not in category_stats:
                     category_stats[category] = {"total": 0, "passes": 0}
                 category_stats[category]["total"] += 1
-                if ev.get("score_hybrid") == "Pass":
+                if ev.get("score") == "Pass":
                     category_stats[category]["passes"] += 1
 
                 for stage_name, stage_usage in ev.get("tokens", {}).items():
                     if isinstance(stage_usage, StageTokenUsage):
                         aggregate_tokens[stage_name] += stage_usage.total_tokens
 
-        total_passes = strategy_passes["hybrid"]
         overall_accuracy = total_passes / total_questions if total_questions else 0.0
 
         return {
@@ -218,10 +212,6 @@ class LocomoRunner(BaseRunner):
             "accuracy_by_category": {
                 cat: stats["passes"] / stats["total"] if stats["total"] else 0.0
                 for cat, stats in category_stats.items()
-            },
-            "accuracy_by_strategy": {
-                s: strategy_passes[s] / total_questions if total_questions else 0.0
-                for s in ("semantic", "core", "hybrid")
             },
             "tokens_by_stage": aggregate_tokens,
             "total_tokens": sum(aggregate_tokens.values()),
@@ -279,25 +269,17 @@ class LocomoRunner(BaseRunner):
                     }
 
                     try:
-                        # Retrieve via all 3 MemBlocks strategies
-                        semantic_ctx = await self._retrieve_context(
-                            question.question, block, "semantic"
-                        )
-                        core_ctx = await self._retrieve_context(
-                            question.question, block, "core"
-                        )
-                        hybrid_ctx = await self._retrieve_context(
-                            question.question, block, "hybrid"
+                        # Retrieve via hybrid strategy (semantic + core combined)
+                        retrieved_ctx = await self._retrieve_context(
+                            question.question, block
                         )
 
                         # Pull memory window + recursive summary from MemBlocks
-                        memory_window = await mb_session.get_memory_window()
+                        # memory_window = await mb_session.get_memory_window()
                         summary = await mb_session.get_recursive_summary()
 
-                        eval_result["retrieved_context_semantic"] = semantic_ctx
-                        eval_result["retrieved_context_core"] = core_ctx
-                        eval_result["retrieved_context_hybrid"] = hybrid_ctx
-                        eval_result["memory_window_size"] = len(memory_window)
+                        eval_result["retrieved_context"] = retrieved_ctx
+                        eval_result["memory_window_size"] = 0#len(memory_window)
                         eval_result["has_summary"] = bool(summary)
 
                         if qa_template is None:
@@ -305,35 +287,26 @@ class LocomoRunner(BaseRunner):
                         else:
                             evaluator = LocomoEvaluator(self.config)
 
-                            for strategy_name, ctx in [
-                                ("semantic", semantic_ctx),
-                                ("core", core_ctx),
-                                ("hybrid", hybrid_ctx),
-                            ]:
-                                full_ctx = self._build_full_context(ctx, memory_window, summary)
-                                prompt = self._fill_qa_prompt(
-                                    qa_template, full_ctx, question.question
-                                )
-                                answer = self._call_llm(prompt)
-                                eval_result[f"answer_{strategy_name}"] = answer
-                                eval_result[f"score_{strategy_name}"] = (
-                                    evaluator.evaluate_with_judge(
-                                        question.question, question.answer, answer
-                                    )
-                                )
+                            full_ctx = self._build_full_context(retrieved_ctx, summary, memory_window=None)
+                            prompt = self._fill_qa_prompt(
+                                qa_template, full_ctx, question.question
+                            )
+                            answer = self._call_llm(prompt)
+                            eval_result["answer"] = answer
+                            eval_result["score"] = evaluator.evaluate_with_judge(
+                                question.question, question.answer, answer
+                            )
 
-                            eval_result["actual_answer"] = eval_result.get("answer_hybrid", "")
+                            eval_result["actual_answer"] = answer
                             eval_result["status"] = "evaluated"
 
-                            # Capture hybrid trace for debugging
+                            # Capture trace for debugging
                             eval_result["prompt_trace"] = self._fill_qa_prompt(
-                                qa_template,
-                                self._build_full_context(hybrid_ctx, memory_window, summary),
-                                question.question,
+                                qa_template, full_ctx, question.question
                             )
-                            eval_result["response_trace"] = eval_result.get("answer_hybrid", "")
+                            eval_result["response_trace"] = answer
 
-                            # Stub token metrics — replace with real LLM usage tracker when ready
+                            #TODO: Stub token metrics — replace with real LLM usage tracker when Memblocks LLM provider is ready. Use client.get_token_usage() to get real token usage per stage, and remove hardcoded values.
                             eval_result["tokens"] = {
                                 "retrieval": StageTokenUsage(
                                     stage=PipelineStage.RETRIEVAL,

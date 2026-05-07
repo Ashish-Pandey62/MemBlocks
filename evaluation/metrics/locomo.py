@@ -120,9 +120,8 @@ class LocomoEvaluator:
         Returns:
             "Pass" or "Fail" from the judge.
         """
-        stub_names = {None, "stub-judge", "default", ""}
-        if self._judge_model in stub_names:
-            return self.evaluate_answer(question, expected_answer, actual_answer)
+        if self._judge_model is None:
+            raise ValueError("No judge model configured for LLM evaluation")
 
         import requests
 
@@ -136,6 +135,8 @@ class LocomoEvaluator:
             f"- Respond Fail if the actual answer says 'I cannot answer', 'I don't know', refuses to answer, gives wrong facts, or omits the key information.\n"
             f"Respond with ONLY the single word Pass or Fail — nothing else."
         )
+
+        #TODO: replace with LLMProvider from memblocks
         ollama_url = "http://localhost:11434"
         try:
             from memblocks import MemBlocksConfig

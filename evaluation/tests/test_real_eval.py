@@ -316,33 +316,26 @@ class TestRealEvalPipeline:
 
         for i, ev in enumerate(evals):
             q = ev["question"]
-            semantic_ctx = ev.get("retrieved_context_semantic", "")
-            core_ctx = ev.get("retrieved_context_core", "")
-            hybrid_ctx = ev.get("retrieved_context_hybrid", "")
+            retrieved_ctx = ev.get("retrieved_context", "")
             window_size = ev.get("memory_window_size", 0)
             has_summary = ev.get("has_summary", False)
 
             print(f"\n  Question {i+1}: {q[:80]}")
             print(f"  memory_window_size : {window_size}")
             print(f"  has_summary        : {has_summary}")
-            print(f"  semantic ctx len   : {len(semantic_ctx or '')}")
-            print(f"  core ctx len       : {len(core_ctx or '')}")
-            print(f"  hybrid ctx preview : {(hybrid_ctx or '')[:200]}")
+            print(f"  retrieved ctx len  : {len(retrieved_ctx or '')}")
+            print(f"  retrieved preview  : {(retrieved_ctx or '')[:200]}")
 
-            # At minimum, hybrid context (core + semantic combined) must not be empty
-            assert hybrid_ctx is not None, f"Q{i+1}: hybrid_ctx is None"
-            # Core memory should always have something after pipeline runs
-            assert core_ctx is not None, f"Q{i+1}: core_ctx is None"
+            # Retrieved context must not be empty
+            assert retrieved_ctx is not None, f"Q{i+1}: retrieved_context is None"
 
         print("\n✓ Retrieval verified — context was populated from real MemBlocks storage")
 
-        # At least one layer (semantic Qdrant OR core MongoDB) must have produced content
+        # Retrieved context must have content
         for i, ev in enumerate(evals):
-            sem = ev.get("retrieved_context_semantic", "")
-            core = ev.get("retrieved_context_core", "")
-            hybrid = ev.get("retrieved_context_hybrid", "")
-            assert (sem or core or hybrid), (
-                f"Q{i+1}: ALL retrieval strategies returned empty — "
+            ctx = ev.get("retrieved_context", "")
+            assert ctx, (
+                f"Q{i+1}: Retrieved context is empty — "
                 "neither Qdrant nor MongoDB core memory has any content. "
                 "The full pipeline (PS1 + core extraction) appears to have failed."
             )
@@ -367,9 +360,7 @@ class TestRealEvalPipeline:
         print(f"  Total questions      : {metrics.get('total_questions')}")
         print(f"  Overall accuracy     : {metrics.get('overall_accuracy', 0)*100:.1f}%")
 
-        print(f"\n  Accuracy by strategy :")
-        for s, acc in (metrics.get("accuracy_by_strategy") or {}).items():
-            print(f"    {s:10s}: {acc*100:.1f}%")
+        # Accuracy by strategy removed - using hybrid-only approach
 
         # curl summary for Qdrant
         info = _qdrant_collection_info(f"{block_id}_semantic")

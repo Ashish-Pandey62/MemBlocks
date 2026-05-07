@@ -263,11 +263,6 @@ Full structured results:
     "total_questions": 10,
     "total_passes": 6,
     "accuracy_by_category": { "1": 0.7, "2": 0.5 },
-    "accuracy_by_strategy": {
-      "semantic": 0.5,
-      "core": 0.4,
-      "hybrid": 0.6
-    },
     "tokens_by_stage": { "retrieval": 700, "qa": 3000, ... },
     "total_tokens": 4100
   },
@@ -283,12 +278,8 @@ Full structured results:
           "question": "...",
           "expected_answer": "...",
           "actual_answer": "...",
-          "score_semantic": "Pass",
-          "score_core": "Fail",
-          "score_hybrid": "Pass",
-          "retrieved_context_semantic": "...",
-          "retrieved_context_core": "...",
-          "retrieved_context_hybrid": "...",
+          "score": "Pass",
+          "retrieved_context": "...",
           "memory_window_size": 10,
           "has_summary": true,
           "status": "evaluated"
