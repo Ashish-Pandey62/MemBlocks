@@ -4,6 +4,8 @@ import { setAuthToken, getCurrentUser, listBlocks, createBlock, deleteBlock } fr
 import BlockManager from '../components/BlockManager';
 import ChatInterface from '../components/ChatInterface';
 import AnalyticsPanel from '../components/AnalyticsPanel';
+import MemoryBrowser from '../components/MemoryBrowser';
+import TokenUsageDashboard from '../components/TokenUsageDashboard';
 
 function Workspace() {
   const { user, isLoaded } = useUser();
@@ -22,6 +24,8 @@ function Workspace() {
   const [creating, setCreating] = useState(false);
   const [blockError, setBlockError] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showMemoryBrowser, setShowMemoryBrowser] = useState(false);
+  const [showTokenUsage, setShowTokenUsage] = useState(false);
   const userMenuRef = useRef(null);
 
   useEffect(() => {
@@ -193,6 +197,30 @@ function Workspace() {
             </div>
           )}
         </div>
+        
+        {/* Additional Tools */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowMemoryBrowser(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            title="View all memories"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <span className="hidden sm:inline">My Memories</span>
+          </button>
+          <button
+            onClick={() => setShowTokenUsage(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            title="Token usage dashboard"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <span className="hidden sm:inline">Usage</span>
+          </button>
+        </div>
 
         <div className="flex items-center gap-3" ref={userMenuRef}>
           {user?.imageUrl && (
@@ -328,6 +356,21 @@ function Workspace() {
           </div>
         </div>
       )}
+
+      {/* Memory Browser Modal */}
+      <MemoryBrowser
+        isOpen={showMemoryBrowser}
+        onClose={() => setShowMemoryBrowser(false)}
+        blocks={blocks}
+        currentBlock={currentBlock}
+        onSelectBlock={handleSelectBlock}
+      />
+
+      {/* Token Usage Dashboard Modal */}
+      <TokenUsageDashboard
+        isOpen={showTokenUsage}
+        onClose={() => setShowTokenUsage(false)}
+      />
     </div>
   );
 }
