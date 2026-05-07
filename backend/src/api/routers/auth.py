@@ -8,6 +8,8 @@ import jwt
 
 from backend.src.api.dependencies import get_client
 from memblocks import MemBlocksClient
+from mcp_server.state import set_user_id
+# from .....mcp_server.src.mcp_server.state import set_user_id
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -61,12 +63,14 @@ async def get_current_user(
                 # Last try - decode without verification
                 claims = jwt.decode(token, options={"verify_signature": False})
         
+
         user_id = claims.get("sub")
         if not user_id:
             raise HTTPException(
                 status_code=401,
                 detail="Invalid token: no user ID",
             )
+        
         
         # Try to get user info from Clerk
         email = claims.get("email")
@@ -81,6 +85,8 @@ async def get_current_user(
                 "image_url": image_url,
             },
         )
+        
+        set_user_id(user_id)  # Save user ID to shared state for CLI access
         
         return CurrentUser(
             user_id=user_id,
