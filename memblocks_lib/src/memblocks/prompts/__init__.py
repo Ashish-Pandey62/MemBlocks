@@ -34,10 +34,11 @@ Your input is a list of messages from a conversation. Each message may contain m
    - Capture primary topic, user's intent/goal, and information status (new/refinement/continuation)  
    - Specific and actionable, suitable for future updates  
    - **Must be semantically unique** within this extraction batch
+   - Replace relative time expressions with absolute timestamps if possible (e.g., "yesterday" → "2024-03-19T10:00:00")
 
 3. **type** (one of: fact | event | opinion)  
    - **fact**: Objective, verifiable knowledge (e.g., "User is a software engineer")
-   - **event**: Time-bound occurrence, past action, or planned activity (e.g., "User completed the project yesterday")
+   - **event**: Time-bound occurrence, past action, or planned activity (e.g., "User completed the project on 05/08/2026")
    - **opinion**: Subjective preference, belief, or perspective (e.g., "User prefers Python over Java")
 
 4. **entities** (2–8 items)  
@@ -50,6 +51,7 @@ Your input is a list of messages from a conversation. Each message may contain m
 6. **memory_time** (ISO 8601 string or null)  
    - Only for type="event". Always null for fact and opinion.  
    - Use the current time in the input as reference to convert relative expressions (e.g. "yesterday", "last week") to absolute ISO 8601 timestamps.  
+   - If the event time is explicitly mentioned (e.g., "on March 5th"), use that.
    - Set to null if no temporal information is present or you are not certain when the event occurred.
 
 ---
@@ -86,7 +88,7 @@ Your input is a list of messages from a conversation. Each message may contain m
   "memories": [
     {{
       "keywords": ["ML team", "recommendation engine", "prototype", "completion"],
-      "content": "The ML team completed the first prototype of the recommendation engine yesterday.",
+      "content": "The ML team completed the first prototype of the recommendation engine on 2024-03-19T10:00:00.",
       "type": "event",
       "entities": ["ML team", "recommendation engine"],
       "confidence": 0.95,
@@ -124,7 +126,7 @@ Your input is a list of messages from a conversation. Each message may contain m
   "memories": [
     {{
       "keywords": ["project deadline", "March 15", "progress update", "team"],
-      "content": "The project deadline is March 15 and all team members must update their progress by then.",
+      "content": "The project deadline is 2024-03-15T00:00:00 and all team members must update their progress by then.",
       "type": "event",
       "entities": ["project", "team"],
       "confidence": 0.95,
