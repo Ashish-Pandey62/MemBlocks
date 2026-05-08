@@ -6,14 +6,17 @@ session is marked as failed and its questions are skipped.
 """
 
 import asyncio
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
+
+logger = logging.getLogger(__name__)
 
 from memblocks.llm.task_settings import LLMTaskSettings
 
 from evaluation.core.config import RunConfig, RunnerConfig
 from evaluation.datasets.locomo import LocomoDataset, LocomoMessage
-from evaluation.metrics.locomo import LocomoEvaluator, PipelineStage, StageTokenUsage
+from evaluation.metrics.locomo import PipelineStage, StageTokenUsage
 from evaluation.metrics.reporter import Reporter
 from evaluation.runners.base import BaseRunner
 
@@ -311,13 +314,31 @@ class LocomoRunner(BaseRunner):
         sessions = self.dataset.load()
         results: List[Dict[str, Any]] = []
         qa_template = self._load_qa_template()
+
         user_id = f"eval-locomo-{str(output_dir).replace('/', '-')}"
 
-        for session in sessions:
+        total_sessions = len(sessions)
+        logger.info("=" * 70)
+        logger.info("EVAL START — %d session(s) to process", total_sessions)
+        logger.info("  model=%s  judge=%s", self.config.model, self.config.judge_model)
+        logger.info("=" * 70)
+
+        for session_idx, session in enumerate(sessions, 1):
+            sid = session.session_id
+            n_msgs = len(session.messages)
+            n_qs = len(session.questions)
+            logger.info("")
+            logger.info("─" * 70)
+            logger.info(
+                "[SESSION %d/%d] id=%s  messages=%d  questions=%d",
+                session_idx, total_sessions, sid, n_msgs, n_qs,
+            )
+            logger.info("─" * 70)
+
             session_results: Dict[str, Any] = {
-                "session_id": session.session_id,
-                "questions_evaluated": len(session.questions),
-                "messages_processed": len(session.messages),
+                "session_id": sid,
+                "questions_evaluated": n_qs,
+                "messages_processed": n_msgs,
                 "evaluations": [],
             }
 
@@ -328,18 +349,29 @@ class LocomoRunner(BaseRunner):
             judge_client = None
 
             try:
-                block_name = f"locomo-session-{session.session_id}"
 
+                block_name = f"locomo-session-{sid}"
+
+                logger.info("[SETUP] Creating MemBlocks session — user=%s block=%s", user_id, block_name)
                 client, block, mb_session = await self._create_session(user_id, block_name)
+                logger.info("[SETUP] Session ready — block_id=%s", block.id)
 
                 # Ingest conversation as paired (user_msg, ai_response) turns
                 turns = self._pair_messages(session.messages)
-                for user_msg, ai_response in turns:
+                logger.info("[INGEST] Pairing %d messages → %d turn(s)", n_msgs, len(turns))
+                for turn_idx, (user_msg, ai_response) in enumerate(turns, 1):
+                    logger.debug(
+                        "[INGEST] Turn %d/%d  USER=%.80r  AI=%.80r",
+                        turn_idx, len(turns),
+                        user_msg, ai_response,
+                    )
                     await mb_session.add(user_msg=user_msg, ai_response=ai_response)
+                logger.info("[INGEST] All %d turn(s) added — flushing memory pipeline", len(turns))
 
                 # Flush at end of ingestion to run the memory pipeline on remaining turns
                 if turns:
                     await mb_session.flush()
+                    logger.info("[FLUSH] Memory pipeline flush complete for block %s", block.id)
 
                 session_results["ingestion_status"] = "success"
                 session_results["block_id"] = block.id
@@ -347,11 +379,23 @@ class LocomoRunner(BaseRunner):
                 # Create separate clients for QA and judging
                 qa_client = self._create_qa_client()
                 judge_client = self._create_judge_client()
+                logger.info(
+                    "[SETUP] QA client model=%s  Judge client model=%s",
+                    self.config.model, self.config.judge_model,
+                )
 
                 # ----------------------------------------------------------
                 # Retrieval + QA — only runs when ingestion succeeded
                 # ----------------------------------------------------------
-                for question in session.questions:
+                session_passes = 0
+                for q_idx, question in enumerate(session.questions, 1):
+                    logger.info("")
+                    logger.info(
+                        "  [Q %d/%d] category=%-20s  q=%.80s",
+                        q_idx, n_qs, question.category, question.question,
+                    )
+                    logger.debug("  [Q %d/%d] expected_answer=%r", q_idx, n_qs, question.answer)
+
                     eval_result: Dict[str, Any] = {
                         "question": question.question,
                         "expected_answer": question.answer,
@@ -362,42 +406,45 @@ class LocomoRunner(BaseRunner):
 
                     try:
                         # Retrieve via hybrid strategy (semantic + core combined)
-                        retrieved_ctx = await self._retrieve_context(
-                            question.question, block
+                        logger.debug("  [RETRIEVE] query=%.80r", question.question)
+                        retrieved_ctx = await self._retrieve_context(question.question, block)
+                        ctx_len = len(retrieved_ctx) if retrieved_ctx else 0
+                        logger.info("  [RETRIEVE] done — context_chars=%d", ctx_len)
+                        logger.debug("  [RETRIEVE] context_preview=%.200r", retrieved_ctx)
+
+                        # Pull recursive summary from MemBlocks
+                        summary = await mb_session.get_recursive_summary()
+                        has_summary = bool(summary)
+                        logger.debug(
+                            "  [SUMMARY] has_summary=%s  summary_chars=%d",
+                            has_summary, len(summary) if summary else 0,
                         )
 
-                        # Pull memory window + recursive summary from MemBlocks
-                        # memory_window = await mb_session.get_memory_window()
-                        summary = await mb_session.get_recursive_summary()
-
                         eval_result["retrieved_context"] = retrieved_ctx
-                        eval_result["memory_window_size"] = 0#len(memory_window)
-                        eval_result["has_summary"] = bool(summary)
+                        eval_result["memory_window_size"] = 0
+                        eval_result["has_summary"] = has_summary
 
                         if qa_template is None:
+                            logger.warning("  [QA] Skipping — no QA template found at %s", QA_TEMPLATE_PATH)
                             eval_result["status"] = "skipped_no_qa_template"
                         else:
-                            evaluator = LocomoEvaluator(
-                                self.config,
-                                judge_provider=judge_client.conversation_llm,
-                            )
-
                             full_ctx = self._build_full_context(retrieved_ctx, summary, memory_window=None)
-                            prompt = self._fill_qa_prompt(
-                                qa_template, full_ctx, question.question
-                            )
+                            prompt = self._fill_qa_prompt(qa_template, full_ctx, question.question)
+                            logger.debug("  [QA] prompt_chars=%d  model=%s", len(prompt), self.config.model)
+
                             answer = await qa_client.conversation_llm.chat(
                                 [{"role": "user", "content": prompt}]
                             )
+                            logger.info("  [QA] answer=%.120r", answer)
                             eval_result["answer"] = answer
-                            
+
                             # Use structured output for judge
                             from pydantic import BaseModel
-                            
+
                             class JudgeOutput(BaseModel):
                                 decision: Literal["Pass", "Fail"]
                                 reasoning: str
-                            
+
                             judge_chain = judge_client.conversation_llm.create_structured_chain(
                                 system_prompt=(
                                     "You are a strict evaluator. Respond with a JSON object containing "
@@ -414,62 +461,92 @@ class LocomoRunner(BaseRunner):
                                 f"Expected Answer: {question.answer}\n"
                                 f"Actual Answer: {answer}"
                             )
+                            logger.debug("  [JUDGE] model=%s  input_chars=%d", self.config.judge_model, len(judge_input))
                             judge_output = await judge_chain.ainvoke({"input": judge_input})
-                            eval_result["score"] = judge_output.decision
 
+                            decision = judge_output.decision
+                            reasoning = judge_output.reasoning
+                            eval_result["score"] = decision
                             eval_result["actual_answer"] = answer
                             eval_result["status"] = "evaluated"
+                            if decision == "Pass":
+                                session_passes += 1
+
+                            logger.info(
+                                "  [JUDGE] %s | reasoning=%.100s",
+                                decision.upper(), reasoning,
+                            )
 
                             # Extract real token usage from clients
-                            eval_result["tokens"] = {
-                                "retrieval": self._extract_token_usage(
-                                    client, PipelineStage.RETRIEVAL
-                                ),
-                                "extraction": self._extract_token_usage(
-                                    client, PipelineStage.EXTRACTION
-                                ),
-                                "qa": self._extract_token_usage(
-                                    qa_client, PipelineStage.QA
-                                ),
-                                "conflict_management": self._extract_token_usage(
-                                    client, PipelineStage.CONFLICT_MANAGEMENT
-                                ),
-                                "summary_generation": self._extract_token_usage(
-                                    client, PipelineStage.SUMMARY_GENERATION
-                                ),
-                                "core_memory_generation": self._extract_token_usage(
-                                    client, PipelineStage.CORE_MEMORY_GENERATION
-                                ),
-                                "judge": self._extract_token_usage(
-                                    judge_client, PipelineStage.JUDGE
-                                ),
+                            token_usage = {
+                                "retrieval": self._extract_token_usage(client, PipelineStage.RETRIEVAL),
+                                "extraction": self._extract_token_usage(client, PipelineStage.EXTRACTION),
+                                "qa": self._extract_token_usage(qa_client, PipelineStage.QA),
+                                "conflict_management": self._extract_token_usage(client, PipelineStage.CONFLICT_MANAGEMENT),
+                                "summary_generation": self._extract_token_usage(client, PipelineStage.SUMMARY_GENERATION),
+                                "core_memory_generation": self._extract_token_usage(client, PipelineStage.CORE_MEMORY_GENERATION),
+                                "judge": self._extract_token_usage(judge_client, PipelineStage.JUDGE),
                             }
+                            eval_result["tokens"] = token_usage
+
+                            token_summary = "  ".join(
+                                f"{k}={v.total_tokens}"
+                                for k, v in token_usage.items()
+                                if isinstance(v, StageTokenUsage) and v.total_tokens
+                            )
+                            logger.debug("  [TOKENS] %s", token_summary or "no usage data")
 
                     except Exception as e:
+                        logger.error("  [Q %d/%d] FAILED: %s", q_idx, n_qs, e, exc_info=True)
                         eval_result["status"] = f"retrieval_failed: {e}"
 
                     session_results["evaluations"].append(eval_result)
 
+                # Session summary
+                evaluated = [e for e in session_results["evaluations"] if e.get("status") == "evaluated"]
+                pct = (session_passes / len(evaluated) * 100) if evaluated else 0.0
+                logger.info("")
+                logger.info(
+                    "[SESSION RESULT] id=%s  %d/%d Pass  accuracy=%.1f%%",
+                    sid, session_passes, len(evaluated), pct,
+                )
+
             except Exception as e:
-                # MemBlocks infrastructure error — record and skip QA for this session.
-                # No in-memory substitution: the session result reflects the real failure.
+                logger.error(
+                    "[SESSION %d/%d] MemBlocks infrastructure error for session %s: %s",
+                    session_idx, total_sessions, sid, e, exc_info=True,
+                )
                 session_results["ingestion_status"] = f"memblocks_error: {e}"
                 session_results["block_id"] = None
 
             finally:
-                if client is not None:
-                    await client.close()
-                if qa_client is not None:
-                    await qa_client.close()
-                if judge_client is not None:
-                    await judge_client.close()
+                for label, c in [("main", client), ("qa", qa_client), ("judge", judge_client)]:
+                    if c is not None:
+                        await c.close()
+                        logger.debug("[TEARDOWN] Closed %s client", label)
 
             results.append(session_results)
+
+        # Final aggregate log
+        metrics = self._aggregate_metrics(results)
+        logger.info("")
+        logger.info("=" * 70)
+        logger.info(
+            "EVAL COMPLETE — sessions=%d  questions=%d  passes=%d  accuracy=%.1f%%",
+            len(sessions),
+            metrics["total_questions"],
+            metrics["total_passes"],
+            metrics["overall_accuracy"] * 100,
+        )
+        if metrics.get("accuracy_by_category"):
+            for cat, acc in metrics["accuracy_by_category"].items():
+                logger.info("  category=%-25s  accuracy=%.1f%%", cat, acc * 100)
+        logger.info("=" * 70)
 
         return {
             "sessions_processed": len(sessions),
             "details": results,
-            "metrics": self._aggregate_metrics(results),
+            "metrics": metrics,
         }
 
     # ------------------------------------------------------------------
