@@ -9,6 +9,8 @@ import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 
+from memblocks.llm.task_settings import LLMTaskSettings
+
 from evaluation.core.config import RunConfig, RunnerConfig
 from evaluation.datasets.locomo import LocomoDataset, LocomoMessage
 from evaluation.metrics.locomo import LocomoEvaluator, PipelineStage, StageTokenUsage
@@ -16,7 +18,7 @@ from evaluation.metrics.reporter import Reporter
 from evaluation.runners.base import BaseRunner
 
 try:
-    from memblocks import MemBlocksClient, MemBlocksConfig
+    from memblocks import MemBlocksClient, MemBlocksConfig, LLMSettings
 except ImportError as _e:
     raise ImportError(
         "The 'memblocks' package is required to run evaluation. "
@@ -68,7 +70,29 @@ class LocomoRunner(BaseRunner):
         Raises:
             Any exception from MemBlocksClient (MongoDB / Qdrant connectivity).
         """
-        client = MemBlocksClient(MemBlocksConfig(memory_window_limit=10000))
+        client = MemBlocksClient(
+            MemBlocksConfig(
+                    memory_window_limit=30, keep_last_n = 0,
+                    llm_settings=LLMSettings(
+                    default=LLMTaskSettings(
+                        provider="groq",
+                        model="openai/gpt-oss-120b"
+                    ),
+                    ps1_semantic_extraction=LLMTaskSettings(
+                        provider="openrouter",
+                        model="nvidia/nemotron-3-super-120b-a12b:free"
+                    ),
+                    ps2_conflict_resolution=LLMTaskSettings(
+                        provider="ollama",
+                        model="llama-3.1-8b-ctx20000:latest"
+                    ),
+                    retrieval=LLMTaskSettings(
+                        provider="groq",
+                        model="openai/gpt-oss-20b"
+                    ),
+                )
+            )
+        )
         await client.get_or_create_user(user_id)
         block = await client.create_block(user_id=user_id, name=block_name)
         session = await client.create_session(user_id=user_id, block_id=block.id)
@@ -162,36 +186,36 @@ class LocomoRunner(BaseRunner):
         prompt = prompt.replace("{question_text}", str(question_text))
         return prompt
 
-    def _ollama_base_url(self) -> str:
-        """Return the Ollama generation base URL from MemBlocksConfig (.env OLLAMA_BASE_URL)."""
-        try:
-            return MemBlocksConfig().ollama_base_url
-        except Exception:
-            return "http://localhost:11434"
+    # def _ollama_base_url(self) -> str:
+    #     """Return the Ollama generation base URL from MemBlocksConfig (.env OLLAMA_BASE_URL)."""
+    #     try:
+    #         return MemBlocksConfig().ollama_base_url
+    #     except Exception:
+    #         return "http://localhost:11434"
 
-    def _call_llm(self, prompt: str) -> str:
-        """POST prompt to the configured Ollama model and return its response text."""
-        # Keeping this for backward compatibility - new code uses conversation_llm
-        import requests
+    # def _call_llm(self, prompt: str) -> str:
+    #     """POST prompt to the configured Ollama model and return its response text."""
+    #     # Keeping this for backward compatibility - new code uses conversation_llm
+    #     import requests
 
-        model = self.config.model if self.config and self.config.model else None
-        if not model:
-            raise ValueError("LLM model not specified in configuration")
+    #     model = self.config.model if self.config and self.config.model else None
+    #     if not model:
+    #         raise ValueError("LLM model not specified in configuration")
 
-        try:
-            response = requests.post(
-                f"{self._ollama_base_url()}/api/generate",
-                json={
-                    "model": model,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {"temperature": 0},
-                },
-                timeout=180,
-            )
-            return response.json().get("response", "").strip()
-        except Exception as e:
-            return f"LLM call failed: {e}"
+    #     try:
+    #         response = requests.post(
+    #             f"{self._ollama_base_url()}/api/generate",
+    #             json={
+    #                 "model": model,
+    #                 "prompt": prompt,
+    #                 "stream": False,
+    #                 "options": {"temperature": 0},
+    #             },
+    #             timeout=180,
+    #         )
+    #         return response.json().get("response", "").strip()
+    #     except Exception as e:
+    #         return f"LLM call failed: {e}"
 
     def _extract_token_usage(
         self,
@@ -283,10 +307,11 @@ class LocomoRunner(BaseRunner):
     # Main async pipeline
     # ------------------------------------------------------------------
 
-    async def _run_async(self) -> Dict[str, Any]:
+    async def _run_async(self, output_dir: str) -> Dict[str, Any]:
         sessions = self.dataset.load()
         results: List[Dict[str, Any]] = []
         qa_template = self._load_qa_template()
+        user_id = f"eval-locomo-{str(output_dir).replace('/', '-')}"
 
         for session in sessions:
             session_results: Dict[str, Any] = {
@@ -303,7 +328,6 @@ class LocomoRunner(BaseRunner):
             judge_client = None
 
             try:
-                user_id = f"eval-locomo-{session.session_id}"
                 block_name = f"locomo-session-{session.session_id}"
 
                 client, block, mb_session = await self._create_session(user_id, block_name)
@@ -355,7 +379,6 @@ class LocomoRunner(BaseRunner):
                         else:
                             evaluator = LocomoEvaluator(
                                 self.config,
-                                qa_provider=qa_client.conversation_llm,
                                 judge_provider=judge_client.conversation_llm,
                             )
 
@@ -463,7 +486,7 @@ class LocomoRunner(BaseRunner):
             Evaluation results dictionary.
         """
         output_dir.mkdir(parents=True, exist_ok=True)
-        results = asyncio.run(self._run_async())
+        results = asyncio.run(self._run_async(output_dir))
 
         reporter = Reporter()
         reporter.save_json(results, output_dir)
