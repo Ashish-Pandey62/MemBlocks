@@ -118,7 +118,7 @@ class LocomoRunner(BaseRunner):
                 else:
                     ai_content = ""
                     i += 1
-                turns.append((user_content, ai_content))
+                turns.append((user_content, ai_content, messages[i].date_time)) #TODO: date_time should be included in the message object and passed here
             else:
                 i += 1  # skip leading/extra assistant messages
         return turns
@@ -359,12 +359,16 @@ class LocomoRunner(BaseRunner):
                 # Ingest conversation as paired (user_msg, ai_response) turns
                 turns = self._pair_messages(session.messages)
                 logger.info("[INGEST] Pairing %d messages → %d turn(s)", n_msgs, len(turns))
-                for turn_idx, (user_msg, ai_response) in enumerate(turns, 1):
+                for turn_idx, (user_msg, ai_response, date_time_cur) in enumerate(turns, 1):
                     logger.debug(
                         "[INGEST] Turn %d/%d  USER=%.80r  AI=%.80r",
                         turn_idx, len(turns),
                         user_msg, ai_response,
                     )
+                    #TODO: use pytest or some other possible function to mock date_time in all subsequent calls from mb_session.add, setting datetime.utcnow() and datetime.now(timezone.utc) to  date_time_cur
+                    # This way we can preserve the original timestamps from the dataset in the message objects and pass them to the session.add() method.
+                    # We do not want to manually pass the datetime to .add and all the internal methods since that would require a lot of changes, but we can mock the datetime module to achieve the same effect.
+                    # at the end, when we .utcnow() in memblocks_lib\src\memblocks\services\session.py, memblocks_lib\src\memblocks\services\memory_pipeline.pyy, or call current_time = datetime.now(timezone.utc).isoformat() in extract function of memblocks_lib\src\memblocks\services\semantic_memory.py, the current_time will be set to the date_time_cur from the dataset, not that actual current time, which allows us to preserve the original timestamps in the dataset for accurate evaluation.
                     await mb_session.add(user_msg=user_msg, ai_response=ai_response)
                 logger.info("[INGEST] All %d turn(s) added — flushing memory pipeline", len(turns))
 

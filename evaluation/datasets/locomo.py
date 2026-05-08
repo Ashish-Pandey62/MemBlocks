@@ -14,6 +14,7 @@ class LocomoMessage:
     """A single message in a LoCoMo conversation."""
     role: str
     content: str
+    date_time: Optional[datetime] = None #TODO: this should be parsed from the session data and included in the message object.
 
 
 @dataclass
@@ -110,7 +111,7 @@ class LocomoDataset(BaseDataset):
             # Messages from all sessions in the conversation
             messages = []
             for key, value in conversation.items():
-                if key.startswith("session_") and not key.endswith(("_date_time", "_summary", "_observation")):
+                if key.startswith("session_") and not key.endswith(("_date_time", "_summary", "_observation")): #TODO: _date_time should be converted to a timestamp and appened as a part of the locomoMessage
                     if isinstance(value, list):
                         for msg in value:
                             speaker = msg.get("speaker", "")
@@ -129,7 +130,7 @@ class LocomoDataset(BaseDataset):
 
                             # Prepend character tag to content
                             content_with_tag = f"[{character}]: {text}"
-                            messages.append(LocomoMessage(role=role, content=content_with_tag))
+                            messages.append(LocomoMessage(role=role, content=content_with_tag, date_time=None)) #TODO: date_time should be parsed
 
             # Build questions from QA annotations
             questions = []
