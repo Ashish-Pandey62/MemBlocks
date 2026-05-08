@@ -201,7 +201,7 @@ async def _run_cli() -> None:
         config = MemBlocksConfig(llm_settings=LLMSettings(
                 default=LLMTaskSettings(
                     provider="groq",
-                    model="moonshotai/kimi-k2-instruct-0905"
+                    model="openai/gpt-oss-20b"
                 ),
                 retrieval=LLMTaskSettings(
                     provider="groq",
@@ -213,7 +213,7 @@ async def _run_cli() -> None:
                 ),
                 ps2_conflict_resolution=LLMTaskSettings(
                     provider="groq",
-                    model="moonshotai/kimi-k2-instruct-0905"
+                    model="openai/gpt-oss-20b"
                 ),
                 core_memory_extraction=LLMTaskSettings(
                     provider="groq",

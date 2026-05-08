@@ -475,7 +475,10 @@ class MongoDBAdapter:
         if not doc:
             return
         messages: List[Dict[str, Any]] = doc.get("messages", [])
-        trimmed = messages[-keep_last_n:] if len(messages) > keep_last_n else messages
+        if keep_last_n <= 0:
+            trimmed = []
+        else:
+            trimmed = messages[-keep_last_n:] if len(messages) > keep_last_n else messages
         await self.sessions.update_one(
             {"session_id": session_id},
             {"$set": {"messages": trimmed}},

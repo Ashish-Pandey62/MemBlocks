@@ -72,7 +72,7 @@ class LocomoRunner(BaseRunner):
         """
         client = MemBlocksClient(
             MemBlocksConfig(
-                    memory_window_limit=30, keep_last_n = 10,
+                    memory_window_limit=30, keep_last_n = 6,
                     llm_settings=LLMSettings(
                     default=LLMTaskSettings(
                         provider="groq",
