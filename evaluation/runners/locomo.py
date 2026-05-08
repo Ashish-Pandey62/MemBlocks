@@ -464,12 +464,12 @@ class LocomoRunner(BaseRunner):
                             logger.debug("  [JUDGE] model=%s  input_chars=%d", self.config.judge_model, len(judge_input))
                             judge_output = await judge_chain.ainvoke({"input": judge_input})
 
-                            decision = judge_output.decision
+                            decision = judge_output.decision.lower()
                             reasoning = judge_output.reasoning
                             eval_result["score"] = decision
                             eval_result["actual_answer"] = answer
                             eval_result["status"] = "evaluated"
-                            if decision == "Pass":
+                            if decision == "pass":
                                 session_passes += 1
 
                             logger.info(
