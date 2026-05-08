@@ -52,7 +52,7 @@ class MemBlocksConfig(BaseSettings):
     # LLM Configuration
     # -------------------------------------------------------------------------
     llm_provider_name: str = Field(
-        "groq",
+        "ollama",
         validation_alias="LLM_PROVIDER_NAME",
         description="LLM provider to use (e.g. 'groq', 'gemini')",
     )
@@ -98,7 +98,7 @@ class MemBlocksConfig(BaseSettings):
         ]
 
     llm_model: str = Field(
-        "moonshotai/kimi-k2-0905",
+        "hf.co/unsloth/gemma-3n-E4B-it-GGUF:Q4_K_M",
         validation_alias="LLM_MODEL",
     )
     llm_convo_temperature: float = Field(0.7, validation_alias="LLM_CONVO_TEMPERATURE")
