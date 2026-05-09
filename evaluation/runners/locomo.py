@@ -99,8 +99,10 @@ class LocomoRunner(BaseRunner):
     # MemBlocks session lifecycle
     # ------------------------------------------------------------------
 
-    async def _create_session(self, user_id: str, block_name: str):
-        """Create a MemBlocks client, block, and session against real infrastructure.
+    async def _setup_block(self, user_id: str, block_name: str):
+        """Create a MemBlocks client and block against real infrastructure.
+
+        Sessions within the block are created separately (one per chat session).
 
         Raises:
             Any exception from MemBlocksClient (MongoDB / Qdrant connectivity).
@@ -130,8 +132,7 @@ class LocomoRunner(BaseRunner):
         )
         await client.get_or_create_user(user_id)
         block = await client.create_block(user_id=user_id, name=block_name)
-        session = await client.create_session(user_id=user_id, block_id=block.id)
-        return client, block, session
+        return client, block
 
     # ------------------------------------------------------------------
     # Message pairing
@@ -144,14 +145,13 @@ class LocomoRunner(BaseRunner):
         while i < len(messages):
             if messages[i].role == "user":
                 user_content = messages[i].content
-                date_time = messages[i].date_time  # capture before i is incremented
                 if i + 1 < len(messages) and messages[i + 1].role == "assistant":
                     ai_content = messages[i + 1].content
                     i += 2
                 else:
                     ai_content = ""
                     i += 1
-                turns.append((user_content, ai_content, date_time))
+                turns.append((user_content, ai_content))
             else:
                 i += 1  # skip leading/extra assistant messages
         return turns
@@ -358,13 +358,14 @@ class LocomoRunner(BaseRunner):
 
         for session_idx, session in enumerate(sessions, 1):
             sid = session.session_id
-            n_msgs = len(session.messages)
+            n_sub_sessions = len(session.sub_sessions)
+            n_msgs = sum(len(ss.messages) for ss in session.sub_sessions)
             n_qs = len(session.questions)
             logger.info("")
             logger.info("─" * 70)
             logger.info(
-                "[SESSION %d/%d] id=%s  messages=%d  questions=%d",
-                session_idx, total_sessions, sid, n_msgs, n_qs,
+                "[CONV %d/%d] id=%s  chat_sessions=%d  messages=%d  questions=%d",
+                session_idx, total_sessions, sid, n_sub_sessions, n_msgs, n_qs,
             )
             logger.info("─" * 70)
 
@@ -383,32 +384,45 @@ class LocomoRunner(BaseRunner):
 
             try:
 
-                block_name = f"locomo-session-{sid}"
+                block_name = f"locomo-conv-{sid}"
 
-                logger.info("[SETUP] Creating MemBlocks session — user=%s block=%s", user_id, block_name)
-                client, block, mb_session = await self._create_session(user_id, block_name)
-                logger.info("[SETUP] Session ready — block_id=%s", block.id)
+                logger.info("[SETUP] Creating MemBlocks block — user=%s block=%s", user_id, block_name)
+                client, block = await self._setup_block(user_id, block_name)
+                logger.info("[SETUP] Block ready — block_id=%s", block.id)
 
-                # Ingest conversation as paired (user_msg, ai_response) turns
-                turns = self._pair_messages(session.messages)
-                logger.info("[INGEST] Pairing %d messages → %d turn(s)", n_msgs, len(turns))
-                for turn_idx, (user_msg, ai_response, date_time_cur) in enumerate(turns, 1):
-                    logger.debug(
-                        "[INGEST] Turn %d/%d  USER=%.80r  AI=%.80r",
-                        turn_idx, len(turns),
-                        user_msg, ai_response,
+                # Each sub_session (session_X) gets its own MemBlocks session within the block.
+                # Retrieval is block-scoped so all sessions contribute to QA context.
+                total_turns = 0
+                for ss_idx, sub_session in enumerate(session.sub_sessions, 1):
+                    ss_turns = self._pair_messages(sub_session.messages)
+                    total_turns += len(ss_turns)
+                    dt_label = (
+                        sub_session.date_time.strftime("%Y-%m-%d %H:%M")
+                        if sub_session.date_time else "N/A"
                     )
-                    if date_time_cur is not None:
-                        with _freeze_datetime(date_time_cur):
+                    logger.info(
+                        "[INGEST] Sub-session %d/%d  key=%s  dt=%s  turns=%d",
+                        ss_idx, n_sub_sessions, sub_session.session_key, dt_label, len(ss_turns),
+                    )
+                    mb_session = await client.create_session(user_id=user_id, block_id=block.id)
+                    for turn_idx, (user_msg, ai_response) in enumerate(ss_turns, 1):
+                        logger.debug(
+                            "[INGEST] Turn %d/%d  USER=%.80r  AI=%.80r",
+                            turn_idx, len(ss_turns), user_msg, ai_response,
+                        )
+                        if sub_session.date_time is not None:
+                            with _freeze_datetime(sub_session.date_time):
+                                await mb_session.add(user_msg=user_msg, ai_response=ai_response)
+                        else:
                             await mb_session.add(user_msg=user_msg, ai_response=ai_response)
-                    else:
-                        await mb_session.add(user_msg=user_msg, ai_response=ai_response)
-                logger.info("[INGEST] All %d turn(s) added — flushing memory pipeline", len(turns))
+                    if ss_turns:
+                        await mb_session.flush()
+                        logger.debug("[FLUSH] Sub-session %s flushed", sub_session.session_key)
 
-                # Flush at end of ingestion to run the memory pipeline on remaining turns
-                if turns:
-                    await mb_session.flush()
-                    logger.info("[FLUSH] Memory pipeline flush complete for block %s", block.id)
+                logger.info(
+                    "[INGEST] All %d sub-session(s) ingested — %d total turn(s)",
+                    n_sub_sessions, total_turns,
+                )
 
                 session_results["ingestion_status"] = "success"
                 session_results["block_id"] = block.id

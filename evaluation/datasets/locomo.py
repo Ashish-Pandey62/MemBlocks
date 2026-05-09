@@ -26,13 +26,20 @@ class LocomoMessage:
     """A single message in a LoCoMo conversation."""
     role: str
     content: str
-    date_time: Optional[datetime] = None
+
+
+@dataclass
+class LocomoChatSession:
+    """One session_X block within a LoCoMo conversation, with its own timestamp."""
+    session_key: str          # e.g. "session_1"
+    date_time: Optional[datetime]
+    messages: List[LocomoMessage]
 
 
 @dataclass
 class LocomoQuestion:
     """A question from LoCoMo.
-    
+
     In the original dataset, questions are mostly open-ended generation tasks,
     not multiple-choice (unless they have distractors explicitly provided).
     """
@@ -44,9 +51,9 @@ class LocomoQuestion:
 
 @dataclass
 class LocomoSession:
-    """A complete LoCoMo conversation session."""
+    """A complete LoCoMo conversation (one sample), containing multiple chat sessions."""
     session_id: str
-    messages: List[LocomoMessage]
+    sub_sessions: List[LocomoChatSession]
     questions: List[LocomoQuestion]
 
 
@@ -120,50 +127,55 @@ class LocomoDataset(BaseDataset):
             speaker_a = conversation.get("speaker_a", "SpeakerA")
             speaker_b = conversation.get("speaker_b", "SpeakerB")
 
-            # Messages from all sessions in the conversation
-            messages = []
+            # Build one LocomoChatSession per session_X key in the conversation.
+            # session_X_date_time entries without a matching session_X list are skipped.
+            sub_sessions: List[LocomoChatSession] = []
             for key, value in conversation.items():
-                if key.startswith("session_") and not key.endswith(("_date_time", "_summary", "_observation")):
-                    session_dt = _parse_locomo_datetime(conversation.get(f"{key}_date_time"))
-                    if isinstance(value, list):
-                        for msg in value:
-                            speaker = msg.get("speaker", "")
-                            text = msg.get("text", "")
+                if not (key.startswith("session_") and not key.endswith(("_date_time", "_summary", "_observation"))):
+                    continue
+                if not isinstance(value, list):
+                    continue
 
-                            # Map speaker to role
-                            if speaker == speaker_a:
-                                role = "user"
-                                character = speaker_a
-                            elif speaker == speaker_b:
-                                role = "assistant"
-                                character = speaker_b
-                            else:
-                                role = "unknown"
-                                character = speaker
+                session_dt = _parse_locomo_datetime(conversation.get(f"{key}_date_time"))
+                messages: List[LocomoMessage] = []
+                for msg in value:
+                    speaker = msg.get("speaker", "")
+                    text = msg.get("text", "")
 
-                            # Prepend character tag to content
-                            content_with_tag = f"[{character}]: {text}"
-                            messages.append(LocomoMessage(role=role, content=content_with_tag, date_time=session_dt))
+                    if speaker == speaker_a:
+                        role = "user"
+                        character = speaker_a
+                    elif speaker == speaker_b:
+                        role = "assistant"
+                        character = speaker_b
+                    else:
+                        role = "unknown"
+                        character = speaker
+
+                    messages.append(LocomoMessage(role=role, content=f"[{character}]: {text}"))
+
+                if messages:
+                    sub_sessions.append(LocomoChatSession(
+                        session_key=key,
+                        date_time=session_dt,
+                        messages=messages,
+                    ))
 
             # Build questions from QA annotations
-            questions = []
-            qa_list = sample.get("qa", [])
-            for qa in qa_list:
-                question = LocomoQuestion(
+            questions: List[LocomoQuestion] = []
+            for qa in sample.get("qa", []):
+                questions.append(LocomoQuestion(
                     question=qa.get("question", ""),
                     answer=qa.get("answer", ""),
                     category=qa.get("category", 0),
-                    adversarial_answer=qa.get("adversarial_answer")
-                )
-                questions.append(question)
+                    adversarial_answer=qa.get("adversarial_answer"),
+                ))
 
-            sessions.append(
-                LocomoSession(
-                    session_id=sample_id,
-                    messages=messages,
-                    questions=questions
-                )
-            )
+            sessions.append(LocomoSession(
+                session_id=sample_id,
+                sub_sessions=sub_sessions,
+                questions=questions,
+            ))
 
         # Apply subsetting limits if configured
         if self.config.max_sessions is not None:

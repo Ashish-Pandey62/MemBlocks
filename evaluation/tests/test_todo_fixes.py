@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 # 1. _parse_locomo_datetime
 # ---------------------------------------------------------------------------
 
-from evaluation.datasets.locomo import _parse_locomo_datetime, LocomoMessage
+from evaluation.datasets.locomo import _parse_locomo_datetime, LocomoChatSession, LocomoMessage
 
 
 class TestParseLocomoDatetime:
@@ -66,27 +66,41 @@ class TestDatasetDatetimePopulation:
         dataset = LocomoDataset(config)
         return dataset.load()
 
-    def test_messages_have_datetime(self, sessions):
+    def test_conversation_has_multiple_sub_sessions(self, sessions):
         for session in sessions:
-            for msg in session.messages:
-                assert msg.date_time is not None, (
-                    f"session {session.session_id}: message role={msg.role!r} has no date_time"
+            assert len(session.sub_sessions) > 1, (
+                f"conv {session.session_id}: expected multiple sub_sessions, got {len(session.sub_sessions)}"
+            )
+
+    def test_sub_sessions_have_datetime(self, sessions):
+        for session in sessions:
+            for ss in session.sub_sessions:
+                assert ss.date_time is not None, (
+                    f"conv {session.session_id} / {ss.session_key}: date_time is None"
+                )
+                assert isinstance(ss.date_time, datetime)
+
+    def test_sub_sessions_have_messages(self, sessions):
+        for session in sessions:
+            for ss in session.sub_sessions:
+                assert len(ss.messages) > 0, (
+                    f"conv {session.session_id} / {ss.session_key}: no messages"
                 )
 
-    def test_datetime_is_datetime_instance(self, sessions):
+    def test_sub_sessions_have_distinct_datetimes(self, sessions):
+        # Different session_X blocks have different dates — confirms each got its own timestamp.
         for session in sessions:
-            for msg in session.messages:
-                assert isinstance(msg.date_time, datetime)
-
-    def test_messages_have_distinct_datetimes_across_session_blocks(self, sessions):
-        # A LocomoSession spans multiple session_X blocks (different conversation dates),
-        # so there should be more than one unique datetime — one per session_X block.
-        for session in sessions:
-            datetimes = {msg.date_time for msg in session.messages}
-            assert len(datetimes) > 1, (
-                f"session {session.session_id}: expected multiple datetimes (one per session block), "
-                f"got only {datetimes}"
+            datetimes = [ss.date_time for ss in session.sub_sessions]
+            assert len(set(datetimes)) > 1, (
+                f"conv {session.session_id}: expected distinct datetimes per sub_session"
             )
+
+    def test_messages_have_no_date_time_field(self, sessions):
+        # date_time moved to LocomoChatSession; LocomoMessage no longer carries it.
+        for session in sessions:
+            for ss in session.sub_sessions:
+                for msg in ss.messages:
+                    assert not hasattr(msg, "date_time")
 
 
 # ---------------------------------------------------------------------------
@@ -105,42 +119,42 @@ def _make_runner():
 
 
 class TestPairMessages:
-    def test_datetime_taken_from_user_message(self):
-        dt_user = datetime(2023, 5, 8, 13, 56)
-        dt_assistant = datetime(2023, 6, 1, 10, 0)
+    def test_basic_pair(self):
         messages = [
-            LocomoMessage(role="user", content="hello", date_time=dt_user),
-            LocomoMessage(role="assistant", content="hi", date_time=dt_assistant),
+            LocomoMessage(role="user", content="hello"),
+            LocomoMessage(role="assistant", content="hi"),
         ]
         runner = _make_runner()
         turns = runner._pair_messages(messages)
-        assert len(turns) == 1
-        user_msg, ai_resp, turn_dt = turns[0]
-        assert turn_dt == dt_user, "date_time should come from the user message, not the next message"
+        assert turns == [("hello", "hi")]
 
     def test_solo_user_message_no_index_error(self):
-        dt = datetime(2023, 5, 8, 13, 56)
-        messages = [LocomoMessage(role="user", content="last msg", date_time=dt)]
+        # A trailing user message with no assistant response should not raise IndexError.
+        messages = [LocomoMessage(role="user", content="last msg")]
         runner = _make_runner()
         turns = runner._pair_messages(messages)
-        assert len(turns) == 1
-        _, _, turn_dt = turns[0]
-        assert turn_dt == dt
+        assert turns == [("last msg", "")]
 
-    def test_multiple_pairs_each_gets_user_datetime(self):
-        dt1 = datetime(2023, 5, 8, 13, 56)
-        dt2 = datetime(2023, 6, 1, 10, 0)
+    def test_multiple_pairs(self):
         messages = [
-            LocomoMessage(role="user", content="q1", date_time=dt1),
-            LocomoMessage(role="assistant", content="a1", date_time=dt1),
-            LocomoMessage(role="user", content="q2", date_time=dt2),
-            LocomoMessage(role="assistant", content="a2", date_time=dt2),
+            LocomoMessage(role="user", content="q1"),
+            LocomoMessage(role="assistant", content="a1"),
+            LocomoMessage(role="user", content="q2"),
+            LocomoMessage(role="assistant", content="a2"),
         ]
         runner = _make_runner()
         turns = runner._pair_messages(messages)
-        assert len(turns) == 2
-        assert turns[0][2] == dt1
-        assert turns[1][2] == dt2
+        assert turns == [("q1", "a1"), ("q2", "a2")]
+
+    def test_leading_assistant_message_skipped(self):
+        messages = [
+            LocomoMessage(role="assistant", content="ignored"),
+            LocomoMessage(role="user", content="hello"),
+            LocomoMessage(role="assistant", content="hi"),
+        ]
+        runner = _make_runner()
+        turns = runner._pair_messages(messages)
+        assert turns == [("hello", "hi")]
 
 
 # ---------------------------------------------------------------------------
