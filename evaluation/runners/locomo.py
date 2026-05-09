@@ -7,8 +7,11 @@ session is marked as failed and its questions are skipped.
 
 import asyncio
 import logging
+from contextlib import contextmanager
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Generator, List, Literal, Optional, Union
+from unittest.mock import patch
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +30,35 @@ except ImportError as _e:
         "The 'memblocks' package is required to run evaluation. "
         "Install it with:  pip install -e memblocks_lib"
     ) from _e
+
+
+_DATETIME_PATCH_TARGETS = [
+    "memblocks.services.session.datetime",
+    "memblocks.services.memory_pipeline.datetime",
+    "memblocks.services.semantic_memory.datetime",
+]
+
+
+@contextmanager
+def _freeze_datetime(dt: datetime) -> Generator[None, None, None]:
+    """Patch datetime in memblocks service modules so they report dt as the current time.
+
+    session.py and memory_pipeline.py call datetime.utcnow(); semantic_memory.py calls
+    datetime.now(timezone.utc). Both are redirected to dt for accurate dataset timestamps.
+    """
+    dt_naive = dt.replace(tzinfo=None) if dt.tzinfo else dt
+    dt_aware = dt.replace(tzinfo=timezone.utc) if not dt.tzinfo else dt
+    patches = [patch(t) for t in _DATETIME_PATCH_TARGETS]
+    mocks = [p.start() for p in patches]
+    for m in mocks:
+        m.utcnow.return_value = dt_naive
+        m.now.return_value = dt_aware
+    try:
+        yield
+    finally:
+        for p in patches:
+            p.stop()
+
 
 # Path to QA prompt template (relative to project root)
 QA_TEMPLATE_PATH = (
@@ -112,13 +144,14 @@ class LocomoRunner(BaseRunner):
         while i < len(messages):
             if messages[i].role == "user":
                 user_content = messages[i].content
+                date_time = messages[i].date_time  # capture before i is incremented
                 if i + 1 < len(messages) and messages[i + 1].role == "assistant":
                     ai_content = messages[i + 1].content
                     i += 2
                 else:
                     ai_content = ""
                     i += 1
-                turns.append((user_content, ai_content, messages[i].date_time)) #TODO: date_time should be included in the message object and passed here
+                turns.append((user_content, ai_content, date_time))
             else:
                 i += 1  # skip leading/extra assistant messages
         return turns
@@ -365,11 +398,11 @@ class LocomoRunner(BaseRunner):
                         turn_idx, len(turns),
                         user_msg, ai_response,
                     )
-                    #TODO: use pytest or some other possible function to mock date_time in all subsequent calls from mb_session.add, setting datetime.utcnow() and datetime.now(timezone.utc) to  date_time_cur
-                    # This way we can preserve the original timestamps from the dataset in the message objects and pass them to the session.add() method.
-                    # We do not want to manually pass the datetime to .add and all the internal methods since that would require a lot of changes, but we can mock the datetime module to achieve the same effect.
-                    # at the end, when we .utcnow() in memblocks_lib\src\memblocks\services\session.py, memblocks_lib\src\memblocks\services\memory_pipeline.pyy, or call current_time = datetime.now(timezone.utc).isoformat() in extract function of memblocks_lib\src\memblocks\services\semantic_memory.py, the current_time will be set to the date_time_cur from the dataset, not that actual current time, which allows us to preserve the original timestamps in the dataset for accurate evaluation.
-                    await mb_session.add(user_msg=user_msg, ai_response=ai_response)
+                    if date_time_cur is not None:
+                        with _freeze_datetime(date_time_cur):
+                            await mb_session.add(user_msg=user_msg, ai_response=ai_response)
+                    else:
+                        await mb_session.add(user_msg=user_msg, ai_response=ai_response)
                 logger.info("[INGEST] All %d turn(s) added — flushing memory pipeline", len(turns))
 
                 # Flush at end of ingestion to run the memory pipeline on remaining turns

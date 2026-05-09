@@ -2,6 +2,7 @@
 
 import json
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
@@ -9,12 +10,23 @@ from evaluation.core.config import DatasetConfig
 from evaluation.datasets.base import BaseDataset
 
 
+def _parse_locomo_datetime(raw: Optional[str]) -> Optional[datetime]:
+    """Parse a LoCoMo date-time string like '1:56 pm on 8 May, 2023'."""
+    if not raw:
+        return None
+    try:
+        normalized = raw.strip().replace(" am ", " AM ").replace(" pm ", " PM ")
+        return datetime.strptime(normalized, "%I:%M %p on %d %B, %Y")
+    except ValueError:
+        return None
+
+
 @dataclass
 class LocomoMessage:
     """A single message in a LoCoMo conversation."""
     role: str
     content: str
-    date_time: Optional[datetime] = None #TODO: this should be parsed from the session data and included in the message object.
+    date_time: Optional[datetime] = None
 
 
 @dataclass
@@ -111,7 +123,8 @@ class LocomoDataset(BaseDataset):
             # Messages from all sessions in the conversation
             messages = []
             for key, value in conversation.items():
-                if key.startswith("session_") and not key.endswith(("_date_time", "_summary", "_observation")): #TODO: _date_time should be converted to a timestamp and appened as a part of the locomoMessage
+                if key.startswith("session_") and not key.endswith(("_date_time", "_summary", "_observation")):
+                    session_dt = _parse_locomo_datetime(conversation.get(f"{key}_date_time"))
                     if isinstance(value, list):
                         for msg in value:
                             speaker = msg.get("speaker", "")
@@ -130,7 +143,7 @@ class LocomoDataset(BaseDataset):
 
                             # Prepend character tag to content
                             content_with_tag = f"[{character}]: {text}"
-                            messages.append(LocomoMessage(role=role, content=content_with_tag, date_time=None)) #TODO: date_time should be parsed
+                            messages.append(LocomoMessage(role=role, content=content_with_tag, date_time=session_dt))
 
             # Build questions from QA annotations
             questions = []
