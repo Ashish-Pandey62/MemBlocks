@@ -71,4 +71,4 @@ Traceback (most recent call last):
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "C:\Users\Lenovo\Desktop\MemBlocks\.venv\Lib\site-packages\groq\_base_client.py", line 1576, in request
     raise self._make_status_error_from_response(err.response) from Nonemoonshotai
-groq.NotFoundError: Error code: 404 - {'error': {'message': 'The model `mmoonshotai/kimi-k2-instruct-0905` does not exist or you do not have access to it.', 'type': 'invalid_request_error', 'code': 'model_not_found'}}
+groq.NotFoundError: Error code: 404 - {'error': {'message': 'The model `mopenai/gpt-oss-20b` does not exist or you do not have access to it.', 'type': 'invalid_request_error', 'code': 'model_not_found'}}

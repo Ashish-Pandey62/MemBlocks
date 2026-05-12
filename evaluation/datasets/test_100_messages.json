@@ -20,7 +20,7 @@
   "The owner of service beta changed from Karan to Aditi Rao.",
   "I prefer concise status summaries with bullet points.",
   "Weekly architecture sync is every Monday at 4:00 PM IST.",
-  "We use moonshotai/kimi-k2-instruct-0905 for conversational responses in this experiment.",
+  "We use openai/gpt-oss-20b for conversational responses in this experiment.",
   "Core memory should keep my role, org, and preference for concise summaries.",
   "Semantic memory should track changing facts like owners, schedules, and metrics.",
   "Conflict management should replace outdated values when I send corrections.",

@@ -16,7 +16,7 @@ def get_config() -> MemBlocksConfig:
     return MemBlocksConfig(llm_settings=LLMSettings(
                 default=LLMTaskSettings(
                     provider="groq",
-                    model="moonshotai/kimi-k2-instruct-0905"
+                    model="openai/gpt-oss-20b"
                 ),
                 retrieval=LLMTaskSettings(
                     provider="groq",
@@ -28,7 +28,7 @@ def get_config() -> MemBlocksConfig:
                 ),
                 ps2_conflict_resolution=LLMTaskSettings(
                     provider="groq",
-                    model="moonshotai/kimi-k2-instruct-0905"
+                    model="openai/gpt-oss-20b"
                 ),
                 core_memory_extraction=LLMTaskSettings(
                     provider="groq",

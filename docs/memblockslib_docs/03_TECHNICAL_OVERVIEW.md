@@ -288,7 +288,7 @@ class MemBlocksConfig(BaseSettings):
 | `gemini_api_key` | `GEMINI_API_KEY` | `None` | Google Gemini API key |
 | `openrouter_api_key` | `OPENROUTER_API_KEY` | `None` | OpenRouter API key |
 | `ollama_base_url` | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
-| `llm_model` | `LLM_MODEL` | `moonshotai/kimi-k2-instruct-0905` | Model identifier (used when `llm_settings` is not set) |
+| `llm_model` | `LLM_MODEL` | `openai/gpt-oss-20b` | Model identifier (used when `llm_settings` is not set) |
 | `llm_settings` | *(code only)* | `None` | `LLMSettings` object for per-task provider routing; when set, takes precedence over flat fields |
 | `openrouter_fallback_models` | `OPENROUTER_FALLBACK_MODELS` | `""` | Comma-separated fallback model IDs for OpenRouter |
 | `openrouter_enable_thinking` | `OPENROUTER_ENABLE_THINKING` | `false` | Enable extended thinking for OpenRouter |
