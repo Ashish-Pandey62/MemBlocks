@@ -100,7 +100,7 @@ LLM_PROVIDER_NAME=groq
 
 # === Groq API (Required if using Groq) ===
 GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxx
-LLM_MODEL=moonshotai/kimi-k2-instruct-0905
+LLM_MODEL=openai/gpt-oss-20b
 
 # === Google Gemini API (Required if using Gemini) ===
 # GEMINI_API_KEY=AIzaSy_xxxxxxxxxxxxxxxxxx
@@ -108,7 +108,7 @@ LLM_MODEL=moonshotai/kimi-k2-instruct-0905
 
 # === OpenRouter API (Required if using OpenRouter) ===
 # OPENROUTER_API_KEY=sk-or-xxxxxxxxxxxxxxxxxx
-# LLM_MODEL=moonshotai/kimi-k2-instruct-0905
+# LLM_MODEL=openai/gpt-oss-20b
 # OPENROUTER_FALLBACK_MODELS=anthropic/claude-3-5-haiku,google/gemini-flash-1.5
 # OPENROUTER_ENABLE_THINKING=false
 
@@ -181,7 +181,7 @@ config = MemBlocksConfig(
 config = MemBlocksConfig(
     llm_provider_name="openrouter",
     openrouter_api_key="sk-or-xxxxxxxxx",
-    llm_model="moonshotai/kimi-k2-instruct-0905",
+    llm_model="openai/gpt-oss-20b",
     mongodb_connection_string="mongodb://localhost:27017",
     qdrant_host="localhost",
     qdrant_port=6333,
@@ -206,7 +206,7 @@ client = MemBlocksClient(config)
 | `openrouter_api_key` | `OPENROUTER_API_KEY` | `None` | API key for OpenRouter (required when provider is `"openrouter"`) |
 | `cohere_api_key` | `COHERE_API_KEY` | `None` | API key for Cohere re-ranker (required when using Cohere-based reranking) |
 | `ollama_base_url` | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL (required when provider is `"ollama"`) |
-| `llm_model` | `LLM_MODEL` | `moonshotai/kimi-k2-instruct-0905` | Model identifier (provider-specific) |
+| `llm_model` | `LLM_MODEL` | `openai/gpt-oss-20b` | Model identifier (provider-specific) |
 | `mongodb_connection_string` | `MONGODB_CONNECTION_STRING` | *required* | MongoDB connection URI |
 | `mongodb_database_name` | `MONGODB_DATABASE_NAME` | `memblocks_v2` | Database name |
 | `qdrant_host` | `QDRANT_HOST` | `localhost` | Qdrant server host |
@@ -247,7 +247,7 @@ Uses [`langchain-groq`](https://pypi.org/project/langchain-groq/) to call Groq's
 ```env
 LLM_PROVIDER_NAME=groq
 GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxx
-LLM_MODEL=moonshotai/kimi-k2-instruct-0905
+LLM_MODEL=openai/gpt-oss-20b
 ```
 
 ```python
@@ -256,7 +256,7 @@ from memblocks import MemBlocksClient, MemBlocksConfig
 config = MemBlocksConfig(
     llm_provider_name="groq",
     groq_api_key="gsk_xxxxxxxxx",
-    llm_model="moonshotai/kimi-k2-instruct-0905",
+    llm_model="openai/gpt-oss-20b",
 )
 client = MemBlocksClient(config)
 ```
@@ -297,7 +297,7 @@ Get your key from [openrouter.ai/keys](https://openrouter.ai/keys).
 ```env
 LLM_PROVIDER_NAME=openrouter
 OPENROUTER_API_KEY=sk-or-xxxxxxxxxxxxxxxxxx
-LLM_MODEL=moonshotai/kimi-k2-instruct-0905
+LLM_MODEL=openai/gpt-oss-20b
 
 # Optional: comma-separated fallback models tried in order on failure
 OPENROUTER_FALLBACK_MODELS=anthropic/claude-3-5-haiku,google/gemini-flash-1.5
@@ -312,7 +312,7 @@ from memblocks import MemBlocksClient, MemBlocksConfig
 config = MemBlocksConfig(
     llm_provider_name="openrouter",
     openrouter_api_key="sk-or-xxxxxxxxx",
-    llm_model="moonshotai/kimi-k2-instruct-0905",
+    llm_model="openai/gpt-oss-20b",
 )
 client = MemBlocksClient(config)
 ```
@@ -426,7 +426,7 @@ config = MemBlocksConfig(
         # Default applies to every task that has no explicit override
         default=LLMTaskSettings(
             provider="groq",
-            model="moonshotai/kimi-k2-instruct-0905",
+            model="openai/gpt-oss-20b",
             temperature=0.0,
         ),
         # Override just the conversation task

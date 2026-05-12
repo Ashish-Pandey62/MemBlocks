@@ -67,14 +67,14 @@ def _build_client():
     config = MemBlocksConfig(
         llm_settings=LLMSettings(
             default=LLMTaskSettings(
-                provider="groq", model="moonshotai/kimi-k2-instruct-0905"
+                provider="groq", model="openai/gpt-oss-20b"
             ),
             retrieval=LLMTaskSettings(provider="groq", model="openai/gpt-oss-20b"),
             ps1_semantic_extraction=LLMTaskSettings(
                 provider="groq", model="openai/gpt-oss-120b"
             ),
             ps2_conflict_resolution=LLMTaskSettings(
-                provider="groq", model="moonshotai/kimi-k2-instruct-0905"
+                provider="groq", model="openai/gpt-oss-20b"
             ),
             core_memory_extraction=LLMTaskSettings(
                 provider="groq", model="openai/gpt-oss-120b"
