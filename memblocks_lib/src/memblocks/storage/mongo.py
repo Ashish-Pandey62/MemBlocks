@@ -64,6 +64,9 @@ class MongoDBAdapter:
         # New: sessions collection (supports SessionManager in Phase 7)
         self.sessions = self._db["sessions"]
 
+        # New: LLM usage tracking collection (for persistent analytics)
+        self.llm_usage_records = self._db["llm_usage_records"]
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
@@ -552,3 +555,150 @@ class MongoDBAdapter:
         """Close the underlying Motor client connection."""
         if self._client:
             self._client.close()
+
+    # ------------------------------------------------------------------
+    # LLM USAGE RECORDS (Persistent Analytics)
+    # ------------------------------------------------------------------
+
+    async def save_llm_usage_record(self, record: Dict[str, Any]) -> str:
+        """
+        Save a single LLM call record to the database.
+
+        Args:
+            record: Dict containing LLM call details (call_type, block_id,
+                    model, provider, tokens, latency, etc.)
+
+        Returns:
+            The inserted document's ID.
+        """
+        record["created_at"] = datetime.utcnow().isoformat()
+        result = await self.llm_usage_records.insert_one(record)
+        return str(result.inserted_id)
+
+    async def save_llm_usage_records(self, records: List[Dict[str, Any]]) -> int:
+        """
+        Save multiple LLM call records in batch.
+
+        Args:
+            records: List of LLM call record dicts
+
+        Returns:
+            Number of records inserted.
+        """
+        if not records:
+            return 0
+        for record in records:
+            record["created_at"] = datetime.utcnow().isoformat()
+        result = await self.llm_usage_records.insert_many(records)
+        return len(result.inserted_ids)
+
+    async def get_llm_usage_by_block(
+        self,
+        block_id: str,
+        since: Optional[datetime] = None,
+        call_type: Optional[str] = None,
+        limit: int = 1000,
+    ) -> List[Dict[str, Any]]:
+        """
+        Query LLM usage records for a specific block.
+
+        Args:
+            block_id: The block ID to filter by
+            since: Optional datetime to filter records after
+            call_type: Optional call type filter (e.g., 'conversation', 'retrieval')
+            limit: Max records to return
+
+        Returns:
+            List of LLM usage record dicts
+        """
+        query: Dict[str, Any] = {"block_id": block_id}
+
+        if since:
+            query["timestamp"] = {"$gte": since.isoformat()}
+
+        if call_type:
+            query["call_type"] = call_type
+
+        cursor = self.llm_usage_records.find(query).limit(limit).sort("timestamp", -1)
+        records = await cursor.to_list(length=limit)
+        return [self._serialize_doc(r) for r in records]
+
+    async def get_user_llm_usage(
+        self,
+        user_id: str,
+        block_ids: List[str],
+        since: Optional[datetime] = None,
+        limit: int = 1000,
+    ) -> List[Dict[str, Any]]:
+        """
+        Query LLM usage records for all blocks belonging to a user.
+
+        Args:
+            user_id: The user ID
+            block_ids: List of block IDs belonging to the user
+            since: Optional datetime to filter records after
+            limit: Max records to return
+
+        Returns:
+            List of LLM usage record dicts
+        """
+        query: Dict[str, Any] = {"block_id": {"$in": block_ids}}
+
+        if since:
+            query["timestamp"] = {"$gte": since.isoformat()}
+
+        cursor = self.llm_usage_records.find(query).limit(limit).sort("timestamp", -1)
+        records = await cursor.to_list(length=limit)
+        return [self._serialize_doc(r) for r in records]
+
+    async def get_llm_usage_aggregate(
+        self,
+        block_ids: List[str],
+        since: Optional[datetime] = None,
+    ) -> Dict[str, Any]:
+        """
+        Get aggregated LLM usage stats for multiple blocks.
+
+        Args:
+            block_ids: List of block IDs to aggregate
+            since: Optional datetime to filter records after
+
+        Returns:
+            Dict with aggregated stats per call_type
+        """
+        match_query: Dict[str, Any] = {"block_id": {"$in": block_ids}}
+        if since:
+            match_query["timestamp"] = {"$gte": since.isoformat()}
+
+        pipeline = [
+            {"$match": match_query},
+            {
+                "$group": {
+                    "_id": "$call_type",
+                    "total_requests": {"$sum": 1},
+                    "total_input_tokens": {"$sum": "$input_tokens"},
+                    "total_output_tokens": {"$sum": "$output_tokens"},
+                    "total_tokens": {"$sum": "$total_tokens"},
+                    "total_latency_ms": {"$sum": "$latency_ms"},
+                }
+            },
+        ]
+
+        cursor = self.llm_usage_records.aggregate(pipeline)
+        results = await cursor.to_list(length=20)
+
+        aggregate = {}
+        for r in results:
+            call_type = r["_id"] or "unknown"
+            aggregate[call_type] = {
+                "request_count": r["total_requests"],
+                "total_input_tokens": r["total_input_tokens"],
+                "total_output_tokens": r["total_output_tokens"],
+                "total_tokens": r["total_tokens"],
+                "total_latency_ms": r["total_latency_ms"],
+                "avg_latency_ms": r["total_latency_ms"] / r["total_requests"]
+                if r["total_requests"] > 0
+                else 0,
+            }
+
+        return aggregate

@@ -198,6 +198,45 @@ export const clearActiveSession = (blockId) => {
   }
 };
 
+// ==================== MEMORY BROWSER ====================
+
+export const getAllBlockMemories = async (blockId, limit = 10, offset = 0) => {
+  const response = await apiClient.get(`/memory/all/${blockId}`, {
+    params: { semantic_limit: limit, semantic_offset: offset },
+  });
+  return response.data;
+};
+
+export const searchBlockMemory = async (blockId, query = '', searchType = 'all', limit = 10) => {
+  const response = await apiClient.post(`/memory/${blockId}/search`, null, {
+    params: { query, search_type: searchType, limit },
+  });
+  return response.data;
+};
+
+// ==================== ANALYTICS ====================
+
+export const getTokenUsagePerBlock = async (days = 7) => {
+  const response = await apiClient.get(`/analytics/token-usage/per-block`, {
+    params: { days },
+  });
+  return response.data;
+};
+
+export const getTokenUsageBlock = async (blockId, days = 7) => {
+  const response = await apiClient.get(`/analytics/token-usage/block/${blockId}`, {
+    params: { days },
+  });
+  return response.data;
+};
+
+export const getRecentLlmCalls = async (blockId = null, limit = 20) => {
+  const response = await apiClient.get(`/analytics/token-usage/recent`, {
+    params: { block_id: blockId, limit },
+  });
+  return response.data;
+};
+
 export default {
   setAuthToken,
   getAuthToken,
@@ -222,4 +261,9 @@ export default {
   saveActiveSession,
   getActiveSession,
   clearActiveSession,
+  getAllBlockMemories,
+  searchBlockMemory,
+  getTokenUsagePerBlock,
+  getTokenUsageBlock,
+  getRecentLlmCalls,
 };
