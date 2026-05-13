@@ -5,7 +5,7 @@
       "type": "local",
       "command": ["uv","run", "python", "-m", "mcp_server.server"],
       "environment": {
-        "MEMBLOCKS_USER_ID": "1234"
+        "MEMBLOCKS_USER_ID": "user_3Bbh3h8mQFxu59Ec8TcoYAbHyD7"
       },
       "enabled": true
     }
