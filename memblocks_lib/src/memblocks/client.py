@@ -485,7 +485,24 @@ class MemBlocksClient:
     # ------------------------------------------------------------------ #
 
     def subscribe(self, event_name: str, callback: Any) -> None:
-        """Subscribe *callback* to an internal library event."""
+        """Subscribe *callback* to an internal library event.
+        **Available Events:**
+
+        | Event | When Fired |
+        |-------|------------|
+        | `on_memory_extracted` | After PS1 extraction |
+        | `on_conflict_resolved` | After PS2 conflict resolution |
+        | `on_memory_stored` | After memory written to Qdrant |
+        | `on_core_memory_updated` | After core memory updated |
+        | `on_summary_generated` | After summary created |
+        | `on_pipeline_started` | When pipeline begins |
+        | `on_pipeline_completed` | When pipeline finishes |
+        | `on_pipeline_failed` | When pipeline errors |
+        | `on_memory_retrieved` | When memories retrieved |
+        | `on_db_write` | On any DB write |
+        | `on_message_processed` | After a chat message is fully processed |
+
+        """
         self.event_bus.subscribe(event_name, callback)
 
     def unsubscribe(self, event_name: str, callback: Any) -> None:
