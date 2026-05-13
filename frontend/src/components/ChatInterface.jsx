@@ -28,46 +28,25 @@ function ChatInterface({ activeBlocks, sessionId, onSessionChange, onChatStats }
       setCurrentBlock(activeBlocks[0]);
     } else if (activeBlocks.length === 0) {
       setCurrentBlock(null);
-      onSessionChange(null);
     } else if (currentBlock && !activeBlocks.find(b => b.block_id === currentBlock.block_id)) {
       setCurrentBlock(activeBlocks[0]);
-      onSessionChange(null);
+    } else if (activeBlocks.length === 1 && activeBlocks[0].block_id !== currentBlock?.block_id) {
+      setCurrentBlock(activeBlocks[0]);
     }
   }, [activeBlocks]);
 
-  // Auto-resume session from localStorage when block changes
+  // Clear messages when sessionId becomes null (block switched)
+  useEffect(() => {
+    if (!sessionId && currentBlock) {
+      setMessages([]);
+    }
+  }, [sessionId, currentBlock]);
+
+  // Load session list when block changes (no auto-resume)
   useEffect(() => {
     if (!currentBlock) return;
 
-    const tryResumeSession = async () => {
-      const savedSessionId = getActiveSession(currentBlock.block_id);
-      if (savedSessionId && savedSessionId !== sessionId) {
-        setResuming(true);
-        try {
-          const ctx = await getFullSessionContext(savedSessionId);
-          if (ctx && ctx.messages) {
-            setMessages(ctx.messages);
-            onSessionChange(savedSessionId);
-            // Send core memory + summary up to parent
-            if (onChatStats) {
-              onChatStats({
-                core_memory: ctx.core_memory,
-                summary: ctx.summary,
-                pipeline_runs: ctx.pipeline_runs,
-                message_count: ctx.message_count,
-              });
-            }
-          }
-        } catch (err) {
-          console.error('Failed to resume session:', err);
-          // Session may have been deleted, clear it
-          saveActiveSession(currentBlock.block_id, null);
-        } finally {
-          setResuming(false);
-        }
-      }
-
-      // Load session list for this block
+    const loadSessions = async () => {
       try {
         const blockSessions = await listBlockSessions(currentBlock.block_id);
         setSessions(blockSessions);
@@ -76,7 +55,7 @@ function ChatInterface({ activeBlocks, sessionId, onSessionChange, onChatStats }
       }
     };
 
-    tryResumeSession();
+    loadSessions();
   }, [currentBlock?.block_id]);
 
   // Load full context when session changes externally

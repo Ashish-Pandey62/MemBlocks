@@ -133,18 +133,21 @@ function Workspace() {
   const handleToggleBlock = (block) => {
     const isActive = activeBlocks.some(b => b.block_id === block.block_id);
     if (isActive) {
-      setActiveBlocks(activeBlocks.filter(b => b.block_id !== block.block_id));
+      setActiveBlocks([]);
+      setCurrentBlock(null);
+      setSessionId(null);
     } else {
-      setActiveBlocks([...activeBlocks, block]);
+      setActiveBlocks([block]);
+      setCurrentBlock(block);
+      setSessionId(null);
     }
   };
 
   const handleSelectBlock = (block) => {
     setCurrentBlock(block);
-    setChatStats(null); // Reset stats when changing blocks
-    if (!activeBlocks.some(b => b.block_id === block.block_id)) {
-      setActiveBlocks([...activeBlocks, block]);
-    }
+    setChatStats(null);
+    setSessionId(null);
+    setActiveBlocks([block]);
   };
 
   const handleChatStats = (stats) => {
