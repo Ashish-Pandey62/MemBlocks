@@ -1,6 +1,12 @@
 """Tests for LoCoMo dataset parsing."""
 
 import pytest
+
+evaluation = pytest.importorskip(
+    "evaluation",
+    reason="evaluation module not installed — run from repo root with evaluation in PYTHONPATH",
+)
+
 from evaluation.core.config import DatasetConfig
 from evaluation.datasets import LocomoDataset
 from evaluation.datasets.locomo import LocomoMessage, LocomoQuestion, LocomoSession

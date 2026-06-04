@@ -2,8 +2,8 @@
 name = "memblocks"
 version = "0.1.0"
 description = "Intelligent modular memory management system for LLMs"
-readme = "../README.md"
-license = { file = "../LICENSE" }
+readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.11"
 authors = [
     { name = "Ashish Pandey" },
@@ -54,6 +54,7 @@ Repository = "https://github.com/Ashish-Pandey62/MemBlocks"
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
+    "twine>=5.0",
 ]
 
 [build-system]
