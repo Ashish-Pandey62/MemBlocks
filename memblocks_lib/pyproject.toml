@@ -2,7 +2,30 @@
 name = "memblocks"
 version = "0.1.0"
 description = "Intelligent modular memory management system for LLMs"
+readme = "../README.md"
+license = { file = "../LICENSE" }
 requires-python = ">=3.11"
+authors = [
+    { name = "Ashish Pandey" },
+    { name = "Ankit Mehta" },
+    { name = "Aayush Ojha" },
+]
+keywords = [
+    "llm", "memory", "rag", "langchain", "ai",
+    "context-management", "vector-search", "semantic-memory"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Framework :: AsyncIO",
+    "Typing :: Typed",
+]
 dependencies = [
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
@@ -21,6 +44,11 @@ dependencies = [
     "fastembed>=0.7.4",
     "cohere>=5.5.1"
 ]
+
+[project.urls]
+Homepage = "https://github.com/Ashish-Pandey62/MemBlocks"
+Repository = "https://github.com/Ashish-Pandey62/MemBlocks"
+"Bug Tracker" = "https://github.com/Ashish-Pandey62/MemBlocks/issues"
 
 [build-system]
 requires = ["hatchling"]
