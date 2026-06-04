@@ -290,6 +290,12 @@ uv run --package memblocks pytest -m integration -v
 
 ---
 
+## Authors
+
+Built by [Ashish Pandey](https://github.com/Ashish-Pandey62), [Ankit Mehta](https://github.com/ankitrajmehta), and [Aayush Ojha](https://github.com/AayushOjha001).
+
+---
+
 ## Project Repository
 
 [https://github.com/Ashish-Pandey62/MemBlocks](https://github.com/Ashish-Pandey62/MemBlocks)
