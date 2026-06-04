@@ -277,7 +277,7 @@ Evaluated on the [LoCoMo](https://github.com/snap-research/locomo) long-conversa
 | Search latency p50 | 1.503s | 0.148s | — |
 | Total latency p50 | 2.701s | 0.708s | 9.870s |
 
-> MemBlocks was evaluated using the free-tier `gpt-oss-20b` model. Baseline figures use `gpt-4o-mini` ([Mem0 paper](https://arxiv.org/abs/2504.19413)) — latency figures are not directly comparable. Token consumption figures are model-independent.
+> MemBlocks results are from our own evaluation on a 10-conversation subset of LoCoMo using the free-tier `gpt-oss-20b` model. Mem0 and other baseline figures are taken from the [Mem0 paper](https://arxiv.org/abs/2504.19413) (evaluated on the full 50-conversation dataset using `gpt-4o-mini`). Latency figures are not directly comparable due to model differences. Token consumption figures are model-independent.
 
 ---
 
