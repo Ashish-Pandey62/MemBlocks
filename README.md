@@ -267,6 +267,20 @@ uv run python evaluation/locomo_eval.py
 
 ---
 
+## Evaluation
+
+Evaluated on the [LoCoMo](https://github.com/snap-research/locomo) long-conversation benchmark:
+
+| Metric | MemBlocks | Mem0 | Full-context |
+|---|---|---|---|
+| Memory tokens | **1027** | 1764 | 26031 |
+| Search latency p50 | 1.503s | 0.148s | — |
+| Total latency p50 | 2.701s | 0.708s | 9.870s |
+
+> MemBlocks was evaluated using the free-tier `gpt-oss-20b` model. Baseline figures use `gpt-4o-mini` ([Mem0 paper](https://arxiv.org/abs/2504.19413)) — latency figures are not directly comparable. Token consumption figures are model-independent.
+
+---
+
 ## Documentation
 
 | Document | Description |
