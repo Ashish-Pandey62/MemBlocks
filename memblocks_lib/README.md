@@ -267,10 +267,25 @@ uv run python evaluation/locomo_eval.py
 
 ---
 
+## Documentation
+
+| Document | Description |
+|---|---|
+| [Setup Guide](docs/memblockslib_docs/01_SETUP_GUIDE.md) | Installation, prerequisites, configuration, LLM providers, troubleshooting |
+| [API Reference](docs/memblockslib_docs/02_METHODS_AND_INTERFACES.md) | Complete methods and interfaces with usage examples |
+| [Technical Overview](docs/memblockslib_docs/03_TECHNICAL_OVERVIEW.md) | Architecture, memory pipeline internals, data flow, DB schemas |
+| [Contributing](CONTRIBUTING.md) | Dev environment setup, running tests, code style, PR process |
+
+---
+
 ## Running Tests
 
 ```bash
-uv run pytest tests/
+# Unit tests (no infrastructure needed)
+uv run --package memblocks pytest tests/ -v
+
+# Integration tests (requires live MongoDB + Qdrant)
+uv run --package memblocks pytest -m integration -v
 ```
 
 ---
