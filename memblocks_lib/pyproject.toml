@@ -50,6 +50,12 @@ Homepage = "https://github.com/Ashish-Pandey62/MemBlocks"
 Repository = "https://github.com/Ashish-Pandey62/MemBlocks"
 "Bug Tracker" = "https://github.com/Ashish-Pandey62/MemBlocks/issues"
 
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

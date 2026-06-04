@@ -1615,6 +1615,12 @@ dependencies = [
     { name = "requests" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "arize-otel", specifier = ">=0.7.0" },
@@ -1633,6 +1639,12 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.0" },
     { name = "qdrant-client", specifier = ">=1.7" },
     { name = "requests", specifier = ">=2.32" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.23" },
 ]
 
 [[package]]
